@@ -150,6 +150,14 @@ export default function AlertDetailPage({ params }: { params: { id: string } }) 
                                 </div>
                                 <p className="text-xs text-gray-400 mt-2 italic">*Positive values indicate contribution towards "Fraud" classification.</p>
                             </div>
+                            <div className="mt-4 flex justify-end">
+                                <button
+                                    onClick={() => alert("Feedback Recorded: This transaction will be used to retrain the model tonight.")}
+                                    className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center"
+                                >
+                                    Is this a False Positive? Report to AI Team
+                                </button>
+                            </div>
                         </div>
                     </div>
 
