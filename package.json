@@ -7,7 +7,7 @@
         "common"
     ],
     "scripts": {
-        "dev": "concurrently \"npm run dev:client\" \"npm run dev:api\" \"npm run dev:ml\" \"npm run dev:kafka\"",
+        "dev": "concurrently \"npm run dev:client\" \"npm run dev:api\" \"npm run dev:ml\"",
         "dev:client": "npm run dev --workspace=client",
         "dev:api": "npm run dev --workspace=api-gateway",
         "dev:ml": "cd ml-service && python service.py",

@@ -3,6 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, Mic } from 'lucide-react';
 
+interface Message {
+    role: 'bot' | 'user';
+    text: string;
+}
+
 export function SahayakBot() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
