@@ -7,7 +7,11 @@
         "common"
     ],
     "scripts": {
-        "dev": "concurrently \"npm run dev -w client\" \"npm run dev -w api-gateway\"",
+        "dev": "concurrently \"npm run dev:client\" \"npm run dev:api\" \"npm run dev:ml\" \"npm run dev:kafka\"",
+        "dev:client": "npm run dev --workspace=client",
+        "dev:api": "npm run dev --workspace=api-gateway",
+        "dev:ml": "cd ml-service && python service.py",
+        "dev:kafka": "docker-compose up",
         "build": "npm run build --workspaces",
         "start": "npm run start --workspaces"
     },

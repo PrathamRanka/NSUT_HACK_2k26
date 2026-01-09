@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import axios from 'axios';
+import { Kafka } from 'kafkajs';
 import { Scheme, Vendor, Alert, AuditLog } from './models';
 
 dotenv.config();
@@ -151,32 +153,92 @@ app.get('/alerts/:id', async (req, res) => {
     const alert = await Alert.findOne({ id: req.params.id });
     if (alert) res.json(alert); else res.sendStatus(404);
 });
+
+// --- KAFKA SETUP ---
+const kafka = new Kafka({
+    clientId: 'api-gateway',
+    brokers: ['localhost:9092'],
+    retry: { retries: 2 } // Fail fast if no Kafka
+});
+const producer = kafka.producer();
+let isKafkaConnected = false;
+
+const connectKafka = async () => {
+    try {
+        await producer.connect();
+        isKafkaConnected = true;
+        console.log("✅ Kafka Producer Connected");
+    } catch (err) {
+        console.warn("⚠️ Kafka Connection Failed (Falling back to HTTP-only mode)", err);
+    }
+};
+connectKafka();
+
 app.post('/alerts', async (req, res) => {
     try {
-        // Simulator sends { scheme, amount, riskScore, ... }
-        // We generate ID and timestamp
+        // 1. Call ML Service (HTTP)
+        let riskScore = 50;
+        let mlReasons = ["Manual Review Required"];
+        let isAnomaly = false;
+
+        try {
+            const mlRes = await axios.post('http://localhost:5000/predict', {
+                amount: req.body.amount,
+                agency: req.body.scheme,
+                vendor: req.body.vendor || "Unknown"
+            });
+            riskScore = mlRes.data.risk_score;
+            mlReasons = mlRes.data.reasons;
+            isAnomaly = mlRes.data.is_anomaly;
+        } catch (mlErr) {
+            console.error("ML Service Unavailable, using fallback logic");
+            if (req.body.amount > 100000) {
+                riskScore = 80;
+                mlReasons = ["High Value Transaction (Fallback Rule)"];
+            }
+        }
+
+        // 2. Create Alert in DB
         const newAlert = await Alert.create({
             id: `ALT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+            date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toISOString(),
             status: "New",
-            riskLevel: req.body.riskScore > 80 ? "Critical" : "High",
+            riskLevel: riskScore > 80 ? "Critical" : riskScore > 50 ? "High" : "Medium",
             ...req.body,
-            // Defaults for simulation
+            riskScore,
+            mlReasons,
             beneficiary: req.body.beneficiary || "Unknown Beneficiary",
             account: "XX-" + Math.floor(1000 + Math.random() * 9000),
             district: "Simulated District",
-            mlReasons: ["Simulation Engine: Pattern Match", "Velocity Check Failed"],
             hierarchy: []
         });
 
-        // Also log this action
+        // 3. Publish to Kafka (Async)
+        if (isKafkaConnected) {
+            producer.send({
+                topic: 'suspicious_transactions',
+                messages: [
+                    {
+                        value: JSON.stringify({
+                            eventId: `EVT-${Date.now()}`,
+                            type: 'RISK_SCORED',
+                            alertId: newAlert.id,
+                            riskScore,
+                            timestamp: new Date().toISOString()
+                        })
+                    }
+                ],
+            }).catch(e => console.error("Kafka Publish Failed", e));
+        }
+
+        // 4. Audit Log
         await AuditLog.create({
             id: `LOG-${Date.now()}`,
             action: "SIMULATION_EVENT",
             actor: "Simulator Host",
             target: newAlert.id,
-            details: `Injected synthetic fraud alert with risk score ${newAlert.riskScore}`
+            details: `Injected synthetic alert. Kafka: ${isKafkaConnected ? "SENT" : "SKIPPED"}. Risk: ${riskScore}`
         });
 
         res.json(newAlert);
