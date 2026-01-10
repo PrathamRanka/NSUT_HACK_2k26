@@ -77,6 +77,9 @@ agency_stats.columns = ["agency", "agency_avg_amt", "agency_contract_count"]
 
 df = df.merge(agency_stats, on="agency", how="left")
 
+GLOBAL_MEAN = df["awarded_amt"].mean()
+GLOBAL_99TH = df["awarded_amt"].quantile(0.99)
+
 """Time Features"""
 
 df["year"] = df["award_date"].dt.year
@@ -197,6 +200,52 @@ df.tail()
 
 """#Generating Reasons"""
 
+def compute_risk_score(row):
+    risk_score = 10
+    is_anomaly = False
+    reasons = []
+
+    agency_avg = row.get("agency_avg_amt", 0)
+    agency_std = row.get("agency_std", 0)
+
+    # ---------- LAYER 1: Agency Z-Score ----------
+    if pd.notna(agency_std) and agency_std > 0:
+        z = (row["awarded_amt"] - agency_avg) / agency_std
+        if z > 3:
+            risk_score += 40
+            reasons.append(f"Amount is {z:.1f}x deviations above agency average")
+            is_anomaly = True
+
+    # ---------- LAYER 2: Global Extreme Check ----------
+    if row["awarded_amt"] > GLOBAL_99TH:
+        risk_score += 30
+        reasons.append("Amount is in Global Top 1% of contracts")
+        is_anomaly = True
+
+    # ---------- LAYER 3: Hybrid AI ----------
+    if row["if_pred"] == -1:
+        risk_score += 25
+        reasons.append("AI detected unusual procurement pattern")
+        is_anomaly = True
+
+    # ---------- LAYER 4: Forensic Heuristics ----------
+    if row["awarded_amt"] > 10000 and row["awarded_amt"] % 1000 == 0:
+        risk_score += 15
+        reasons.append("Suspiciously round contract amount")
+
+    if row["awarded_amt"] > 5_000_000:   # 50 Lakhs
+        risk_score += 10
+        reasons.append("High value government contract")
+
+    # ---------- Cap score ----------
+    risk_score = min(99, risk_score)
+
+    return pd.Series([risk_score, is_anomaly, reasons])
+
+df[["risk_score", "is_anomaly", "service_reasons"]] = df.apply(compute_risk_score, axis=1)
+
+df[["fraud_score", "risk_score", "is_anomaly"]].head()
+
 def generate_reasons(row):
     reasons = []
 
@@ -243,13 +292,15 @@ def generate_fraud_report(row):
         "agency": row.get("agency", "Unknown"),
         "awarded_amt": float(row["awarded_amt"]),
         "fraud_score": round(float(row["fraud_score"]), 3),
+        "risk_score": int(row["risk_score"]),
         "risk_level": row["risk_level"],
+        "is_anomaly": bool(row["is_anomaly"]),
         "year": safe_int(row.get("year")),
         "month": safe_int(row.get("month")),
-        "reasons": generate_reasons(row)
+        "reasons": generate_reasons(row) + row["service_reasons"]
     }
 
-alerts_df = df.sort_values("fraud_score", ascending=False).head(20)
+alerts_df = df.sort_values("risk_score", ascending=False).head(20)
 fraud_reports = alerts_df.apply(generate_fraud_report, axis=1).tolist()
 fraud_reports[:3]
 
@@ -257,3 +308,4 @@ fraud_reports[:3]
 
 with open("fraud_reports.json", "w") as f:
     json.dump(fraud_reports, f, indent=4)
+
