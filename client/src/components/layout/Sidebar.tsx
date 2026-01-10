@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
     LayoutDashboard,
     AlertTriangle,
@@ -13,53 +13,33 @@ import {
     Map,
     Activity,
     ShieldAlert,
-    Languages,
-    Settings,
-    LogOut,
-    Landmark
+    Landmark,
+    LogOut
 } from "lucide-react";
-import { UserRole } from "@fds/common";
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { user, logout } = useAuth();
-    const [lang, setLang] = useState<'en' | 'hi'>('en');
-
-    const toggleLang = () => setLang(l => l === 'en' ? 'hi' : 'en');
-
-    // Dictionary for Demo
-    const t = {
-        'Dashboard': { en: 'Dashboard', hi: 'डैशबोर्ड' },
-        'Scheme Registry': { en: 'Scheme Registry', hi: 'योजना पंजीकरण' },
-        'Vendor Intelligence': { en: 'Vendor Intelligence', hi: 'विक्रेता बुद्धिमत्ता' },
-        'Alerts & Anomalies': { en: 'Alerts & Anomalies', hi: 'चेतावनी और विसंगतियां' },
-        'Network Graph': { en: 'Network Graph', hi: 'नेटवर्क ग्राफ' },
-        'Geospatial Map': { en: 'Geospatial Map', hi: 'भौगोलिक मानचित्र' },
-        'Fraud Simulator': { en: 'Fraud Simulator', hi: 'धोखाधड़ी सिम्युलेटर' },
-        'Audit Log': { en: 'Audit Log', hi: 'ऑडिट लॉग' },
-    };
+    const { logout } = useAuth();
+    const { t } = useLanguage();
 
     const navItems = [
-        { name: t['Dashboard'][lang], href: '/dashboard', icon: LayoutDashboard },
-        { name: t['Scheme Registry'][lang], href: '/dashboard/schemes', icon: FileText },
-        { name: t['Vendor Intelligence'][lang], href: '/dashboard/vendors', icon: Users },
-        { name: t['Alerts & Anomalies'][lang], href: '/dashboard/alerts', icon: AlertTriangle },
-        { name: t['Network Graph'][lang], href: '/dashboard/network', icon: Network },
-        { name: t['Geospatial Map'][lang], href: '/dashboard/map', icon: Map },
-
-        { name: 'New Transaction', href: '/dashboard/add-payment', icon: Landmark },
-        { name: t['Audit Log'][lang], href: '/dashboard/audit', icon: ShieldAlert },
+        { name: t('Dashboard'), href: '/dashboard', icon: LayoutDashboard },
+        { name: t('Scheme Registry'), href: '/dashboard/schemes', icon: FileText },
+        { name: t('Vendor Intelligence'), href: '/dashboard/vendors', icon: Users },
+        { name: t('Alerts & Anomalies'), href: '/dashboard/alerts', icon: AlertTriangle },
+        { name: t('Network Graph'), href: '/dashboard/network', icon: Network },
+        { name: t('Geospatial Map'), href: '/dashboard/map', icon: Map },
+        { name: t('New Transaction'), href: '/dashboard/add-payment', icon: Landmark },
+        { name: t('Audit Log'), href: '/dashboard/audit', icon: ShieldAlert },
     ];
 
     return (
-        <div className="w-64 bg-slate-900 text-white flex flex-col h-full shadow-xl">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                <div>
-                    <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
-                        PFMS<span className="text-white font-light">Guard</span>
-                    </h1>
-                    <p className="text-xs text-slate-400 mt-1">Fraud Detection Unit</p>
-                </div>
+        <div className="w-64 bg-[#1a2332] text-white flex flex-col h-full shadow-xl z-10 hidden md:flex">
+            <div className="p-5 border-b border-gray-700/50 flex flex-col">
+                <h1 className="text-xl font-bold text-white tracking-wide">
+                    VITT <span className="text-blue-400">PRAHARI</span>
+                </h1>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">PFMS Intelligence Unit</p>
             </div>
 
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
@@ -84,10 +64,10 @@ export function Sidebar() {
             <div className="p-4 border-t border-slate-800">
                 <button
                     onClick={logout}
-                    className="flex w-full items-center px-2 py-2 text-sm font-medium text-red-400 hover:bg-slate-900 rounded-sm transition-colors"
+                    className="flex w-full items-center px-4 py-3 text-sm font-medium text-red-400 hover:bg-white/5 rounded-lg transition-colors"
                 >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
+                    <LogOut className="h-4 w-4 mr-3" />
+                    {t('Sign Out')}
                 </button>
             </div>
         </div>
