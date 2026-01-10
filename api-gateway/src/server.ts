@@ -20,10 +20,10 @@ async function seedDatabase() {
         if (schemeCount === 0) {
             console.log("   -> Inserting Default Schemes...");
             await Scheme.insertMany([
-                { id: "SCH-001", name: "PM-KISAN", ministry: "Agriculture", budgetAllocated: 60000000000, status: "ACTIVE", description: "Direct income support for farmers" },
-                { id: "SCH-002", name: "MGNREGA", ministry: "Rural Development", budgetAllocated: 73000000000, status: "ACTIVE", description: "Employment guarantee scheme" },
-                { id: "SCH-003", name: "PMAY-G", ministry: "Housing", budgetAllocated: 20000000000, status: "ACTIVE", description: "Rural housing scheme" },
-                { id: "SCH-004", name: "Health Mission", ministry: "Health", budgetAllocated: 50000000000, status: "ACTIVE", description: "National health infrastructure" }
+                { id: "SCH-001", name: "Building and Construction Authority", ministry: "National Development", budgetAllocated: 500000000, status: "ACTIVE", description: "Construction and infrastructure development oversight" },
+                { id: "SCH-002", name: "Civil Aviation Authority of Singapore", ministry: "Transport", budgetAllocated: 800000000, status: "ACTIVE", description: "Aviation regulations and airport operations" },
+                { id: "SCH-003", name: "Ministry of Culture, Community and Youth", ministry: "Culture", budgetAllocated: 400000000, status: "ACTIVE", description: "Community building and youth engagement" },
+                { id: "SCH-004", name: "Agri-food and Veterinary Authority", ministry: "National Development", budgetAllocated: 300000000, status: "ACTIVE", description: "Food safety and security" }
             ]);
         }
 
