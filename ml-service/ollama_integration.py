@@ -35,11 +35,12 @@ class SummaryGenerator:
         return f"{severity} (ML Score: {fraud_score}): {reason_text}. Recommend human review."
     
     @staticmethod
-    def generate_vendor_profile(tx_data: Dict[str, Any], prediction: Dict[str, Any]) -> str:
+    def generate_vendor_profile(tx_data: Dict[str, Any], prediction: Dict[str, Any], vendor_context: Optional[Dict[str, Any]] = None) -> str:
         """
         Generate vendor/agency profile using Ollama llama3:8b
         
         READ-ONLY: Uses existing fraud results for explanatory profiling
+        Includes vendor historical context from MongoDB for accurate analysis
         """
         try:
             import ollama
@@ -51,25 +52,43 @@ class SummaryGenerator:
             risk_score = prediction["risk_score"]
             reasons = prediction.get("reasons", [])
             
+            # Build vendor context section from MongoDB data
+            vendor_history = ""
+            if vendor_context:
+                vendor_history = f"""
+
+Vendor Historical Data (from MongoDB):
+- Total Transactions: {vendor_context.get('totalTransactions', 0)}
+- Average Transaction Amount: ₹{vendor_context.get('averageAmount', 0):,.2f}
+- Total Volume: ₹{vendor_context.get('totalVolume', 0):,.2f}
+- High Risk Transactions (≥70): {vendor_context.get('highRiskCount', 0)}
+- Average Risk Score: {vendor_context.get('averageRiskScore', 0):.1f}/100
+"""
+                recent = vendor_context.get('recentTransactions', [])
+                if recent:
+                    vendor_history += "\nRecent Transactions:\n"
+                    for i, tx in enumerate(recent[:3], 1):
+                        vendor_history += f"  {i}. ₹{tx.get('amount', 0):,.2f} - Risk: {tx.get('riskScore', 0)} - {tx.get('scheme', 'N/A')}\n"
+            
             prompt = f"""You are a government fraud investigation assistant analyzing procurement transactions.
 
 Transaction Details:
 - Vendor: {vendor}
 - Agency: {agency}
-- Amount: ${amount:,.2f}
+- Amount: ₹{amount:,.2f}
 - ML Fraud Score: {fraud_score} (0.0-1.0 scale, higher = more anomalous)
 - Risk Score: {risk_score}/99 (rule-based assessment)
 - Flagged as Anomaly: {prediction['is_anomaly']}
-
+{vendor_history}
 Risk Indicators Detected:
 {chr(10).join(f"• {r}" for r in reasons) if reasons else "• No specific risk indicators"}
 
 Generate a professional 3-4 sentence profile explaining:
 1. Why this vendor/agency combination was flagged (reference both ML and rule-based scores)
-2. The key risk factors identified
+2. The key risk factors identified, INCLUDING vendor historical patterns from the database
 3. Recommended next steps for investigators
 
-Be concise, factual, and focus only on the provided risk indicators. Explain the difference between the ML fraud score (subtle patterns) and risk score (explicit rules). Do not speculate beyond the given data."""
+Be concise, factual, and focus only on the provided risk indicators and vendor history. Explain the difference between the ML fraud score (subtle patterns) and risk score (explicit rules). Reference the vendor's historical data when relevant. Do not speculate beyond the given data."""
 
             response = ollama.generate(
                 model='llama3:8b',

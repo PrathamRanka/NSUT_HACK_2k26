@@ -210,6 +210,7 @@ def generate_profile_direct(tx: Transaction):
     Generate vendor/agency profile directly (for backward compatibility)
     
     Note: Prefer /generate-profile/{prediction_id} for production use
+    Queries vendor historical data from predictions_store.jsonl
     """
     try:
         if fraud_engine is None:
@@ -225,12 +226,16 @@ def generate_profile_direct(tx: Transaction):
         # Get fraud prediction
         prediction = fraud_engine.predict(tx_dict)
         
-        # Generate vendor/agency profile using Ollama
-        profile = SummaryGenerator.generate_vendor_profile(tx_dict, prediction)
+        # Query vendor historical data from JSONL file
+        vendor_context = PredictionStore.get_vendor_history(tx.vendor)
+        
+        # Generate vendor/agency profile using Ollama with vendor context from JSONL
+        profile = SummaryGenerator.generate_vendor_profile(tx_dict, prediction, vendor_context)
         
         return {
             **prediction,
-            "vendor_profile": profile
+            "vendor_profile": profile,
+            "vendor_context": vendor_context
         }
         
     except HTTPException:
@@ -239,6 +244,27 @@ def generate_profile_direct(tx: Transaction):
         print(f"Profile Generation Error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Profile generation failed")
+
+
+@app.get("/vendor-history/{vendor}")
+def get_vendor_history(vendor: str):
+    """
+    Get vendor historical data from predictions_store.jsonl
+    
+    Returns statistics and recent transactions for the specified vendor
+    """
+    try:
+        history = PredictionStore.get_vendor_history(vendor)
+        return {
+            "success": True,
+            "vendor": vendor,
+            "data": history
+        }
+    except Exception as e:
+        print(f"Vendor History Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to fetch vendor history")
+
 
 
 # ==================== MAIN ====================

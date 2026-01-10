@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     ArrowLeft, Clock, AlertTriangle, TrendingUp, MapPin, User,
-    DollarSign, Shield, Activity, FileText, ChevronRight, ExternalLink
+    DollarSign, Shield, Activity, FileText, ChevronRight, ExternalLink,
+    Sparkles, Loader2, BarChart3, PieChart, TrendingDown
 } from "lucide-react";
 import { API_ENDPOINTS, apiCall } from "@/lib/config";
 import Link from "next/link";
+import api from "@/lib/api";
 
 interface AlertDetail {
     alert: any;
@@ -18,6 +20,21 @@ interface AlertDetail {
     metadata: any;
 }
 
+interface AISummary {
+    profile: string;
+    vendorContext: {
+        totalTransactions: number;
+        averageAmount: number;
+        totalVolume: number;
+        highRiskCount: number;
+        averageRiskScore: number;
+        recentTransactions: any[];
+    };
+    fraudScore: number;
+    riskScore: number;
+    reasons: string[];
+}
+
 export default function AlertDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -25,6 +42,11 @@ export default function AlertDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("overview");
+
+    // AI Summary state
+    const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
+    const [generatingSummary, setGeneratingSummary] = useState(false);
+    const [summaryError, setSummaryError] = useState("");
 
     useEffect(() => {
         fetchAlertDetail();
@@ -39,6 +61,19 @@ export default function AlertDetailPage() {
             setError(err.message || "Failed to load alert details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const generateAISummary = async () => {
+        try {
+            setGeneratingSummary(true);
+            setSummaryError("");
+            const { data: summary } = await api.post(`/summary/generate/${params.id}`);
+            setAiSummary(summary);
+        } catch (err: any) {
+            setSummaryError(err.response?.data?.message || "Failed to generate AI summary");
+        } finally {
+            setGeneratingSummary(false);
         }
     };
 
@@ -62,7 +97,7 @@ export default function AlertDetailPage() {
                     <p className="text-gray-600 mb-4">{error}</p>
                     <button
                         onClick={() => router.push("/dashboard/alerts")}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         Back to Alerts
                     </button>
@@ -97,7 +132,7 @@ export default function AlertDetailPage() {
             <div className="mb-6">
                 <button
                     onClick={() => router.push("/dashboard/alerts")}
-                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back to Alerts
@@ -122,16 +157,16 @@ export default function AlertDetailPage() {
             {/* Tabs */}
             <div className="border-b border-gray-200 mb-6">
                 <nav className="flex gap-8">
-                    {["overview", "timeline", "related", "raw"].map((tab) => (
+                    {["overview", "ai-summary", "timeline", "related", "raw"].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`pb-4 px-1 border-b-2 font-medium text-sm capitalize ${activeTab === tab
-                                    ? "border-blue-600 text-blue-600"
-                                    : "border-transparent text-gray-500 hover:text-gray-700"
+                            className={`pb-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${activeTab === tab
+                                ? "border-blue-600 text-blue-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
                                 }`}
                         >
-                            {tab}
+                            {tab === "ai-summary" ? "AI Summary" : tab}
                         </button>
                     ))}
                 </nav>
@@ -142,19 +177,19 @@ export default function AlertDetailPage() {
                 <div className="space-y-6">
                     {/* Key Metrics */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-500">Amount</p>
                                     <p className="text-2xl font-bold text-gray-900 mt-1">
-                                        ₹{alert.amount.toLocaleString()}
+                                        ₹{alert.amount.toLocaleString('en-IN')}
                                     </p>
                                 </div>
                                 <DollarSign className="h-8 w-8 text-green-600" />
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-500">Risk Level</p>
@@ -164,7 +199,7 @@ export default function AlertDetailPage() {
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-500">Location</p>
@@ -174,7 +209,7 @@ export default function AlertDetailPage() {
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-gray-500">Created</p>
@@ -183,6 +218,58 @@ export default function AlertDetailPage() {
                                     </p>
                                 </div>
                                 <Clock className="h-8 w-8 text-purple-600" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Risk Breakdown Chart */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5 text-blue-600" />
+                                Risk Breakdown
+                            </h2>
+                            <div className="space-y-3">
+                                {Object.entries(riskBreakdown).map(([key, value]: [string, any]) => (
+                                    <div key={key} className="group">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                                            <span className="text-sm font-semibold text-gray-900">{value}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                            <div
+                                                className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out group-hover:from-blue-600 group-hover:to-blue-700"
+                                                style={{ width: `${Math.min((value / 100) * 100, 100)}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}</div>
+                        </div>
+
+                        {/* Vendor Stats Chart */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <PieChart className="h-5 w-5 text-green-600" />
+                                Vendor Statistics
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                    <p className="text-3xl font-bold text-blue-600">{vendorStats.totalAlerts}</p>
+                                    <p className="text-sm text-gray-600 mt-1">Total Alerts</p>
+                                </div>
+                                <div className="text-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                                    <p className="text-3xl font-bold text-orange-600">{vendorStats.averageRiskScore.toFixed(1)}</p>
+                                    <p className="text-sm text-gray-600 mt-1">Avg Risk Score</p>
+                                </div>
+                                <div className="text-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                                    <p className="text-3xl font-bold text-red-600">{vendorStats.highRiskCount}</p>
+                                    <p className="text-sm text-gray-600 mt-1">High Risk</p>
+                                </div>
+                                <div className="text-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                                    <p className="text-3xl font-bold text-green-600">₹{(vendorStats.totalVolume / 100000).toFixed(1)}L</p>
+                                    <p className="text-sm text-gray-600 mt-1">Total Volume</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -200,7 +287,7 @@ export default function AlertDetailPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Vendor</p>
-                                <p className="font-semibold text-gray-900">{alert.vendor}</p>
+                                <p className="font-semibold text-gray-900">{alert.vendor || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Beneficiary</p>
@@ -215,30 +302,6 @@ export default function AlertDetailPage() {
                         </div>
                     </div>
 
-                    {/* Risk Analysis */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5" />
-                            Risk Breakdown
-                        </h2>
-                        <div className="space-y-3">
-                            {Object.entries(riskBreakdown).map(([key, value]: [string, any]) => (
-                                <div key={key} className="flex items-center justify-between">
-                                    <span className="text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-48 bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="bg-blue-600 h-2 rounded-full"
-                                                style={{ width: `${Math.min((value / 100) * 100, 100)}%` }}
-                                            ></div>
-                                        </div>
-                                        <span className="font-semibold text-gray-900 w-12 text-right">{value}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Detection Reasons */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -247,39 +310,118 @@ export default function AlertDetailPage() {
                         </h2>
                         <ul className="space-y-2">
                             {alert.mlReasons?.map((reason: string, idx: number) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                    <ChevronRight className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <li key={idx} className="flex items-start gap-2 group">
+                                    <ChevronRight className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
                                     <span className="text-gray-700">{reason}</span>
                                 </li>
                             ))}
                         </ul>
                     </div>
+                </div>
+            )}
 
-                    {/* Vendor Statistics */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <User className="h-5 w-5" />
-                            Vendor Statistics
-                        </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                                <p className="text-sm text-gray-500">Total Alerts</p>
-                                <p className="text-2xl font-bold text-gray-900">{vendorStats.totalAlerts}</p>
+            {/* AI Summary Tab */}
+            {activeTab === "ai-summary" && (
+                <div className="space-y-6">
+                    {!aiSummary ? (
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border-2 border-blue-200 p-8 text-center">
+                            <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">AI-Powered Vendor Analysis</h2>
+                            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                                Generate an intelligent summary using Ollama AI that analyzes vendor patterns,
+                                transaction history, and risk indicators from actual MongoDB data.
+                            </p>
+                            <button
+                                onClick={generateAISummary}
+                                disabled={generatingSummary}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto"
+                            >
+                                {generatingSummary ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Generating AI Summary...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-5 w-5" />
+                                        Generate AI Summary
+                                    </>
+                                )}
+                            </button>
+                            {summaryError && (
+                                <p className="text-red-600 mt-4">{summaryError}</p>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-6 animate-fade-in">
+                            {/* AI Generated Profile */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Sparkles className="h-6 w-6 text-blue-600" />
+                                    <h2 className="text-xl font-bold text-gray-900">AI-Generated Analysis</h2>
+                                </div>
+                                <div className="prose max-w-none">
+                                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{aiSummary.profile}</p>
+                                </div>
+                                <button
+                                    onClick={generateAISummary}
+                                    disabled={generatingSummary}
+                                    className="mt-4 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    Regenerate Summary
+                                </button>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Avg Risk Score</p>
-                                <p className="text-2xl font-bold text-gray-900">{vendorStats.averageRiskScore.toFixed(1)}</p>
+
+                            {/* Vendor Context Stats */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4">Vendor Historical Data</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-2xl font-bold text-gray-900">{aiSummary.vendorContext.totalTransactions}</p>
+                                        <p className="text-sm text-gray-600">Total Transactions</p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-2xl font-bold text-gray-900">₹{aiSummary.vendorContext.averageAmount.toLocaleString('en-IN')}</p>
+                                        <p className="text-sm text-gray-600">Average Amount</p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-2xl font-bold text-gray-900">₹{(aiSummary.vendorContext.totalVolume / 100000).toFixed(1)}L</p>
+                                        <p className="text-sm text-gray-600">Total Volume</p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-2xl font-bold text-red-600">{aiSummary.vendorContext.highRiskCount}</p>
+                                        <p className="text-sm text-gray-600">High Risk Count</p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-2xl font-bold text-gray-900">{aiSummary.vendorContext.averageRiskScore.toFixed(1)}</p>
+                                        <p className="text-sm text-gray-600">Avg Risk Score</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500">High Risk Count</p>
-                                <p className="text-2xl font-bold text-red-600">{vendorStats.highRiskCount}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Total Volume</p>
-                                <p className="text-2xl font-bold text-gray-900">₹{(vendorStats.totalVolume / 100000).toFixed(1)}L</p>
+
+                            {/* Recent Transactions */}
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Vendor Transactions</h2>
+                                <div className="space-y-3">
+                                    {aiSummary.vendorContext.recentTransactions.map((tx, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div>
+                                                <p className="font-semibold text-gray-900">₹{tx.amount.toLocaleString('en-IN')}</p>
+                                                <p className="text-sm text-gray-600">{tx.scheme}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${tx.riskScore >= 70 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    Risk: {tx.riskScore}
+                                                </span>
+                                                <p className="text-xs text-gray-500 mt-1">{new Date(tx.timestamp).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
@@ -319,7 +461,7 @@ export default function AlertDetailPage() {
                             <Link
                                 key={related.id}
                                 href={`/dashboard/alerts/${related.id}`}
-                                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-all"
                             >
                                 <div className="flex items-center gap-4">
                                     <div className={`w-2 h-2 rounded-full ${related.riskScore > 70 ? 'bg-red-600' : 'bg-yellow-600'}`}></div>
@@ -332,7 +474,7 @@ export default function AlertDetailPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="text-sm font-semibold text-gray-900">
-                                        ₹{related.amount.toLocaleString()}
+                                        ₹{related.amount.toLocaleString('en-IN')}
                                     </span>
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(related.status)}`}>
                                         {related.status}
