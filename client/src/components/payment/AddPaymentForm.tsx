@@ -140,13 +140,13 @@ export default function AddPaymentForm() {
                                     <h3 className={`text-xl font-bold mb-1 ${result.isAnomaly ? 'text-red-800' : 'text-green-800'}`}>
                                         Risk Assessment: {result.isAnomaly ? 'Anomaly Detected' : 'Standard Transaction'}
                                     </h3>
-                                    <div className="text-sm font-medium opacity-80 mb-4">
+                                    <div className="text-sm font-medium opacity-80 mb-4 text-gray-800">
                                         Fraud Score: <span className="text-lg font-bold">{result.riskScore}/100</span>
                                     </div>
 
                                     {result.mlReasons && result.mlReasons.length > 0 && (
                                         <div className="bg-white/60 p-4 rounded-lg">
-                                            <p className="text-xs font-bold uppercase tracking-wider opacity-60 mb-2">Analysis Findings</p>
+                                            <p className="text-xs font-bold uppercase tracking-wider text-gray-800 opacity-60 mb-2">Analysis Findings</p>
                                             <ul className="space-y-1">
                                                 {result.mlReasons.map((r: string, i: number) => (
                                                     <li key={i} className="text-sm font-medium flex items-center gap-2 text-gray-800">
