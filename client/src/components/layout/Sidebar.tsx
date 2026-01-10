@@ -46,7 +46,7 @@ export function Sidebar() {
         { name: t['Alerts & Anomalies'][lang], href: '/dashboard/alerts', icon: AlertTriangle },
         { name: t['Network Graph'][lang], href: '/dashboard/network', icon: Network },
         { name: t['Geospatial Map'][lang], href: '/dashboard/map', icon: Map },
-        { name: t['Fraud Simulator'][lang], href: '/dashboard/simulator', icon: Activity },
+
         { name: 'New Transaction', href: '/dashboard/add-payment', icon: Landmark },
         { name: t['Audit Log'][lang], href: '/dashboard/audit', icon: ShieldAlert },
     ];
