@@ -1,103 +1,238 @@
-# Public Fraud & Anomaly Detection System (PFMS-Enhanced)
+# Sahayak - Public Fraud & Anomaly Detection System
 
-## 📖 Executive Summary
-The **Public Fraud & Anomaly Detection System** is a next-generation enterprise application designed to monitor, analyze, and detect fraudulent activities in government procurement and welfare distribution schemes. 
+## 📖 Overview
+**Sahayak** is an AI-powered fraud detection system designed to monitor government procurement and welfare distribution schemes. It uses machine learning to identify suspicious transactions in real-time, providing officials with actionable alerts and comprehensive audit trails.
 
-This system leverages a **Microservices Architecture** to integrate real-time transaction monitoring, an **AI-driven Anomaly Detection Engine**, and **Event-Driven Messaging** via Kafka. It provides a comprehensive dashboard for officials to visualize financial flows, identify high-risk vendors, and conduct forensic simulations.
+## 🎯 Core Features
 
-## 🏗 System Architecture
+### ✅ Implemented & Operational
+- **AI-Driven Fraud Detection**: Isolation Forest ML model with statistical analysis
+- **Real-Time Alert Generation**: Automatic risk scoring (0-100) for all transactions
+- **Alert Management Dashboard**: Filter, sort, and manage fraud alerts
+- **Alert Feedback Loop**: Officers can verify or dismiss alerts with audit logging
+- **Live Statistics Dashboard**: Real-time KPIs and recent transaction monitoring
+- **Comprehensive Audit Logging**: Immutable record of all system actions
+- **Backend API Testing**: Full test coverage for core endpoints
+- **Context-Aware Analysis**: Agency-specific spending pattern recognition
+- **Forensic Heuristics**: Round number detection and statistical outlier identification
 
-The application is built on a modern, scalable stack:
+### 🏗 System Architecture
 
-- **Frontend**: Next.js 14 (React) with TypeScript & Tailwind CSS for a responsive, high-performance UI.
-- **API Gateway**: Node.js/Express acting as the central orchestrator, managing authentication, request routing, and database interactions.
-- **ML Engine**: Python (FastAPI) service running an **Isolation Forest** algorithms for unsupervised anomaly detection.
-- **Database**: MongoDB (NoSQL) for flexible storage of Schemes, Vendors, and flexible Audit Logs.
-- **Event Bus**: Apache Kafka for asynchronous communication between the Transaction Processor and the ML Inference Engine.
-- **Infrastructure**: Docker for containerized deployment of Kafka services.
+**Frontend**: Next.js 14 (React) with TypeScript & Tailwind CSS
+- Dashboard with live updates (10s polling)
+- Alert management with status updates
+- Real-time statistics visualization
 
-## 📂 Project Structure & File Guide
+**API Gateway**: Node.js/Express
+- RESTful API endpoints
+- MongoDB integration
+- ML service orchestration
+- Audit logging
 
-This repository functions as a **Monorepo**, housing multiple services in a single codebase. Below is a detailed explanation of each component and its critical files.
+**ML Engine**: Python (FastAPI)
+- Isolation Forest algorithm
+- Statistical baseline analysis
+- Agency-specific risk profiling
+- Training on Singapore government procurement data
 
-### 1. Root Directory
-- **`package.json`**: The root configuration file. It manages the workspace (monorepo) structure and defines global scripts.
-  - `npm run dev`: The master command that concurrently starts the Client, API Gateway, ML Service, and Kafka containers.
-- **`docker-compose.yml`**: Infrastructure-as-Code definition. It defines the Docker services for **Zookeeper** and **Kafka**.
-- **`start_ml.bat`**: A utility script for Windows environments to bootstrap the Python ML service.
+**Database**: MongoDB
+- Schemes, Vendors, Alerts, Audit Logs
+- Flexible schema for evolving requirements
 
-### 2. Client Service (`/client`)
-Built with **Next.js**, serving as the presentation layer.
+**Event Bus**: Apache Kafka (Optional)
+- Asynchronous event processing
+- System operates with fallback if unavailable
 
-- **`src/app/`**: The App Router directory containing page routes.
-  - **`page.tsx`**: The landing/login page.
-  - **`dashboard/layout.tsx`**: Defines the persistent layout (Sidebar, Header, Chatbot) for authenticated users.
-  - **`dashboard/simulator/page.tsx`**: The "Red Team" tool allows users to inject synthetic transaction data to test the system's response.
-  - **`dashboard/network/page.tsx`**: Renders the Dynamic Link Analysis Graph using React Flow.
-  - **`dashboard/schemes/page.tsx`**: Scheme Registry with CRUD functionality for managing government schemes.
-  - **`dashboard/vendors/page.tsx`**: Vendor Intelligence module with search and risk profiling.
-- **`src/components/`**: Reusable UI components.
-  - **`SahayakBot.tsx`**: The "PFMS Sahayak" AI chatbot widget that provides natural language assistance.
-  - **`layout/Sidebar.tsx`**: The main navigation testing harness.
+## 📂 Project Structure
 
-### 3. API Gateway (`/api-gateway`)
-The Backend-for-Frontend (BFF) built with **Express.js**.
+```
+NSUT_HACK/
+├── client/                 # Next.js Frontend
+│   ├── src/app/
+│   │   ├── dashboard/
+│   │   │   ├── page.tsx           # Main dashboard with stats
+│   │   │   ├── alerts/page.tsx    # Alert management
+│   │   │   ├── schemes/page.tsx   # Scheme registry
+│   │   │   ├── vendors/page.tsx   # Vendor intelligence
+│   │   │   └── simulator/page.tsx # Transaction simulator
+│   │   └── page.tsx               # Login/Landing page
+│   └── src/components/            # Reusable UI components
+│
+├── api-gateway/           # Express Backend
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── alert.controller.ts    # Alert CRUD + ML integration
+│   │   │   └── resource.controller.ts # Schemes/Vendors/Health
+│   │   ├── routes/                    # API route definitions
+│   │   ├── services/
+│   │   │   └── ml.service.ts          # ML API client
+│   │   ├── models/index.ts            # Mongoose schemas
+│   │   └── server.ts                  # App initialization + DB seeding
+│   └── tests/api.test.ts              # Backend integration tests
+│
+├── ml-service/            # Python ML Engine
+│   ├── ml_model.py                    # FastAPI app + ML logic
+│   ├── requirements.txt               # Python dependencies
+│   ├── government-procurement-via-gebiz.csv  # Training data
+│   └── tests/test_model.py            # ML service tests
+│
+└── package.json           # Monorepo root config
+```
 
-- **`src/index.ts`**: The application entry point. It initializes the Express server, connects to MongoDB, sets up the Kafka Producer, and defines all REST API endpoints.
-- **`src/models/index.ts`**: Mongoose schema definitions (ORM) for:
-  - `Scheme`: Government scheme metadata and budgets.
-  - `Vendor`: Entity profiles including calculated risk scores.
-  - `Alert`: Generated fraud alerts linked to specific transactions.
-  - `AuditLog`: Immutable record of all system actions for compliance.
-
-### 4. ML Service (`/ml-service`)
-The Intelligence Layer built with **Python & FastAPI**.
-
-- **`service.py`**: The core application logic.
-  - **Startup**: Loads historical procurement data (`government-procurement-via-gebiz.csv`), encodes categorical features (Agency names), and trains the Isolation Forest model.
-  - **`/predict` Endpoint**: Accepts transaction details, runs them through the trained model, applies forensic heuristics (e.g., Benford's Law checks), and returns a Risk Score (0-100).
-- **`requirements.txt`**: List of Python dependencies (pandas, scikit-learn, fastapi, uvicorn).
-- **`government-procurement-via-gebiz.csv`**: The training dataset containing historical procurement records used to establish baseline "normal" behavior.
-
-### 5. Common Library (`/common`)
-- **`src/index.ts`**: Shared TypeScript interfaces/types (DTOs) used by both the Client and API Gateway to ensure type safety across the network boundary.
-
-## � Quick Start Guide
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18+)
-- Python (v3.10+)
-- Docker Desktop (Optional, for full Kafka support)
+- **Node.js** v18+
+- **Python** 3.10+
+- **MongoDB** (local or cloud instance)
+- **Docker** (optional, for Kafka)
 
 ### Installation
-1.  **Clone the Repository**:
-    ```bash
-    git clone <repository-url>
-    ```
-2.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-    This command installs packages for the root, client, and api-gateway workspaces.
 
-### Launching the Application
-Execute the unified development command:
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd NSUT_HACK
+   ```
 
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+   This installs packages for all workspaces (client, api-gateway, common).
+
+3. **Set up MongoDB**:
+   - Ensure MongoDB is running on `mongodb://localhost:27017`
+   - Or update connection string in `api-gateway/src/server.ts`
+
+### Running the Application
+
+**Start all services with one command**:
 ```bash
 npm run dev
 ```
 
-This single command performs the following actions in parallel:
-1.  Starts **Next.js Frontend** at `http://localhost:3000`.
-2.  Starts **API Gateway** at `http://localhost:8000`.
-3.  Launches the **ML Python Service** at `http://localhost:5000` (automatically installing dependencies if needed).
-4.  Spins up **Kafka/Zookeeper** via Docker (if available) at `localhost:9092`.
+This launches:
+- **Frontend**: http://localhost:3000
+- **API Gateway**: http://localhost:8000
+- **ML Service**: http://localhost:8000 (FastAPI)
 
-*Note: The system includes resilience logic. If Docker is not running, the API Gateway will log a warning and fallback to a direct HTTP-to-ML connection mode, bypassing the Event Bus.*
+**Individual service commands**:
+```bash
+npm run dev:client    # Frontend only
+npm run dev:api       # API Gateway only
+npm run dev:ml        # ML Service only
+```
 
-## 🛡️ Security & Compliance
-- **Audit Logging**: Every write operation (Create/Update/Simulate) creates a cryptographically-linkable audit log entry.
-- **Context-Aware Analysis**: The ML model respects agency-specific spending patterns to reduce false positives.
-- **Forensic Validation**: Implements deterministic checks for suspicious "round number" transfers.
+### Testing
+
+**Backend API Tests**:
+```bash
+cd api-gateway
+npm test
+```
+
+**ML Service Tests**:
+```bash
+cd ml-service
+pytest tests/
+```
+
+## 🔄 Core Workflows
+
+### 1. Transaction Processing Flow
+```
+User submits payment → API Gateway → ML Service (risk scoring) 
+→ Alert created (if risky) → Audit log → Response to user
+```
+
+### 2. Alert Management Flow
+```
+Officer views alerts → Filters by status → Reviews details 
+→ Marks as "Verified" or "False Positive" → Audit log updated
+```
+
+### 3. ML Risk Scoring
+```
+Transaction data → Agency encoding → Isolation Forest prediction 
+→ Statistical analysis → Forensic heuristics → Final risk score (0-100)
+```
+
+## 🛠 API Endpoints
+
+### Alerts
+- `POST /alerts` - Create new alert (triggers ML analysis)
+- `GET /alerts` - Fetch all alerts
+- `GET /alerts/stats` - Dashboard statistics
+- `PUT /alerts/:id/status` - Update alert status
+
+### Resources
+- `GET /schemes` - List all schemes
+- `GET /vendors` - List all vendors
+- `GET /audit-logs` - Audit trail
+- `GET /health` - System health check
+
+### ML Service
+- `POST /predict` - Fraud risk prediction
+- `GET /` - Service health
+
+## 📊 Data Models
+
+### Alert Schema
+```typescript
+{
+  id: string,           // ALT-2026-XXXX
+  date: string,         // ISO date
+  timestamp: string,    // ISO datetime
+  status: string,       // "New" | "Verified" | "False Positive"
+  riskScore: number,    // 0-100
+  mlReasons: string[],  // AI-generated reasons
+  amount: number,
+  scheme: string,
+  vendor: string,
+  hierarchy: object[]   // Status change history
+}
+```
+
+## 🔒 Security & Compliance
+
+- **Audit Logging**: Every action logged with timestamp and actor
+- **Context-Aware ML**: Reduces false positives via agency-specific baselines
+- **Immutable Records**: Audit logs cannot be modified
+- **Fallback Logic**: System operates even if ML service is unavailable
+
+## 🐛 Known Issues & Limitations
+
+1. **Kafka Connection**: Optional event bus may fail to connect (system has HTTP fallback)
+2. **Authentication**: Currently uses role selection only (no real auth implemented)
+3. **Test Timing**: One backend test occasionally times out (non-critical)
+
+## 📝 Development Notes
+
+### Database Seeding
+On first run, the API Gateway automatically seeds the database with:
+- Sample schemes (Singapore government agencies)
+- Sample vendors
+- Initial test alerts
+
+### ML Model Training
+The ML service trains on startup using `government-procurement-via-gebiz.csv`:
+- 800+ historical procurement records
+- Agency-specific spending patterns
+- Statistical baselines for anomaly detection
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and add tests
+4. Run `npm test` in api-gateway
+5. Submit a pull request
+
+## 📄 License
+
+[Add your license here]
 
 ---
+
+**Built for NSUT Hackathon 2026** | Powered by AI & Modern Web Technologies
