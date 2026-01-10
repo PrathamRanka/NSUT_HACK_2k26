@@ -5,13 +5,15 @@ import { Search, Building2, AlertTriangle, ArrowUpRight } from "lucide-react";
 import { Vendor } from "@fds/common";
 import Link from "next/link";
 
+import api from "@/lib/api";
+
 export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
 
     useEffect(() => {
-        fetch('http://localhost:8000/vendors')
-            .then(res => res.json())
-            .then(data => setVendors(data));
+        api.get('/vendors')
+            .then(res => setVendors(res.data))
+            .catch(err => console.error(err));
     }, []);
 
     const [showModal, setShowModal] = useState(false);
@@ -19,21 +21,21 @@ export default function VendorsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await fetch('http://localhost:8000/vendors', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        try {
+            await api.post('/vendors', {
                 name: formData.name,
                 gstin: formData.gstin,
                 riskScore: formData.riskScore,
                 totalVolume: 0,
                 flaggedTransactions: 0,
                 accountStatus: 'ACTIVE'
-            })
-        });
-        setShowModal(false);
-        const res = await fetch('http://localhost:8000/vendors');
-        setVendors(await res.json());
+            });
+            setShowModal(false);
+            const res = await api.get('/vendors');
+            setVendors(res.data);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (

@@ -10,7 +10,7 @@
         "dev": "concurrently \"npm run dev:client\" \"npm run dev:api\" \"npm run dev:ml\"",
         "dev:client": "npm run dev --workspace=client",
         "dev:api": "npm run dev --workspace=api-gateway",
-        "dev:ml": "cd ml-service && python service.py",
+        "dev:ml": "cd ml-service && python ml_model.py",
         "dev:kafka": "docker-compose up",
         "build": "npm run build --workspaces",
         "start": "npm run start --workspaces"

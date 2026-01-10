@@ -4,15 +4,16 @@ import { useState, useEffect } from "react";
 import { Plus, Search, FileText, CheckCircle, Clock, AlertOctagon } from "lucide-react";
 import { Scheme } from "@fds/common";
 
+import api from "@/lib/api";
+
 export default function SchemesPage() {
     const [schemes, setSchemes] = useState<Scheme[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:8000/schemes')
-            .then(res => res.json())
-            .then(data => {
-                setSchemes(data);
+        api.get('/schemes')
+            .then(res => {
+                setSchemes(res.data);
                 setLoading(false);
             })
             .catch(err => console.error(err));
@@ -23,20 +24,20 @@ export default function SchemesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await fetch('http://localhost:8000/schemes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        try {
+            await api.post('/schemes', {
                 name: formData.name,
                 ministry: formData.ministry,
                 budgetAllocated: parseInt(formData.budget),
                 description: formData.description
-            })
-        });
-        setShowModal(false);
-        // Reload list
-        const res = await fetch('http://localhost:8000/schemes');
-        setSchemes(await res.json());
+            });
+            setShowModal(false);
+            // Reload list
+            const res = await api.get('/schemes');
+            setSchemes(res.data);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (

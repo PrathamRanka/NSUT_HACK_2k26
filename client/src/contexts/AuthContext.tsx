@@ -25,11 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         // Check local storage on mount
-        const stored = localStorage.getItem("fds_user");
-        if (stored) {
-            setUser(JSON.parse(stored));
+        try {
+            const stored = localStorage.getItem("fds_user");
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed && parsed.id) {
+                    setUser(parsed);
+                }
+            }
+        } catch (e) {
+            console.error("Auth Restoration Failed", e);
+            localStorage.removeItem("fds_user");
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, []);
 
     const login = (role: UserRole) => {

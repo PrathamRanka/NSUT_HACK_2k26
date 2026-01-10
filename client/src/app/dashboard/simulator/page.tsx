@@ -49,8 +49,8 @@ export default function SimulatorPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center">
-                <h1 className="text-3xl font-bold text-gray-900">Fraud Scenario Simulator</h1>
-                <p className="text-gray-500 mt-2">Inject synthetic transaction patterns to test the ML Engine.</p>
+                <h1 className="text-3xl font-bold text-gray-900">Synthetic Data Generator</h1>
+                <p className="text-gray-500 mt-2">Generate batch transactions to train the AI model and test system resilience.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

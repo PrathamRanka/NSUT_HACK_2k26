@@ -62,7 +62,7 @@ export default function AddPaymentForm() {
                                     required
                                     value={formData.amount}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
                                     placeholder="e.g. 50000"
                                 />
                             </div>
@@ -74,7 +74,7 @@ export default function AddPaymentForm() {
                                     required
                                     value={formData.scheme}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-white"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-white text-gray-900"
                                 >
                                     <option value="">Select Scheme</option>
                                     <option value="PM-KISAN">PM-KISAN</option>
@@ -92,7 +92,7 @@ export default function AddPaymentForm() {
                                     required
                                     value={formData.vendor}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
                                     placeholder="e.g. VEN-882 (Rural Infra Builders)"
                                 />
                             </div>
@@ -104,7 +104,7 @@ export default function AddPaymentForm() {
                                     value={formData.description}
                                     onChange={handleChange}
                                     rows={2}
-                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
                                     placeholder="Purpose of payment..."
                                 />
                             </div>
@@ -129,8 +129,8 @@ export default function AddPaymentForm() {
                     {/* RESULTS SECTION */}
                     {result && (
                         <div className={`mt-8 p-6 rounded-xl border-l-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.riskLevel === 'Critical' ? 'bg-red-50 border-red-500' :
-                                result.riskLevel === 'High' ? 'bg-orange-50 border-orange-500' :
-                                    'bg-green-50 border-green-500'
+                            result.riskLevel === 'High' ? 'bg-orange-50 border-orange-500' :
+                                'bg-green-50 border-green-500'
                             }`}>
                             <div className="flex items-start gap-4">
                                 {result.riskLevel === 'Critical' ? <XCircle className="w-8 h-8 text-red-600" /> :
@@ -139,8 +139,8 @@ export default function AddPaymentForm() {
 
                                 <div className="flex-1">
                                     <h3 className={`text-xl font-bold mb-1 ${result.riskLevel === 'Critical' ? 'text-red-800' :
-                                            result.riskLevel === 'High' ? 'text-orange-800' :
-                                                'text-green-800'
+                                        result.riskLevel === 'High' ? 'text-orange-800' :
+                                            'text-green-800'
                                         }`}>
                                         Risk Assessment: {result.riskLevel}
                                     </h3>

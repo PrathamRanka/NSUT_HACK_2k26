@@ -1,4 +1,35 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import { Loader2 } from 'lucide-react';
+
 export default function DashboardPage() {
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchStats = async () => {
+        try {
+            const { data } = await api.get('/alerts/stats');
+            setStats(data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard stats", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStats();
+        // Poll every 10 seconds for live dashboard updates
+        const interval = setInterval(fetchStats, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (loading && !stats) {
+        return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="bg-blue-50 border-l-4 border-blue-900 p-4 rounded-sm shadow-sm">
@@ -19,32 +50,19 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* KPI Cards */}
                 <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Pending Alerts</p>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Alerts</p>
                     <div className="mt-2 flex items-baseline">
-                        <p className="text-3xl font-semibold text-gray-900">12</p>
+                        <p className="text-3xl font-semibold text-gray-900">{stats?.totalAlerts || 0}</p>
                         <p className="ml-2 flex items-baseline text-sm font-semibold text-red-600">
-                            +4 <span className="text-gray-500 font-normal ml-1">since yesterday</span>
+                            +{stats?.recentAlerts || 0} <span className="text-gray-500 font-normal ml-1">last 24h</span>
                         </p>
                     </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Resolved This Week</p>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Volume Flagged</p>
                     <div className="mt-2 flex items-baseline">
-                        <p className="text-3xl font-semibold text-gray-900">48</p>
-                        <p className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                            ^ 12%
-                        </p>
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200">
-                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Flagged Volume</p>
-                    <div className="mt-2 flex items-baseline">
-                        <p className="text-3xl font-semibold text-gray-900">₹4.2 Cr</p>
-                        <p className="ml-2 text-sm text-gray-500">
-                            Provisional
-                        </p>
+                        <p className="text-3xl font-semibold text-gray-900">{stats?.totalVolume || '₹0'}</p>
                     </div>
                 </div>
             </div>
@@ -63,20 +81,26 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">ALT-2026-908</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">PM-KISAN</td>
-                                <td className="px-6 py-4 whitespace-nowrap"><span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">92/100</span></td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹12,50,000</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Investigating</td>
-                            </tr>
-                            <tr>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">ALT-2026-882</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">MGNREGA</td>
-                                <td className="px-6 py-4 whitespace-nowrap"><span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">78/100</span></td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹45,000</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">New</td>
-                            </tr>
+                            {stats?.recentHighRisk?.length > 0 ? (
+                                stats.recentHighRisk.map((alert: any) => (
+                                    <tr key={alert.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{alert.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{alert.scheme}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${alert.riskScore > 90 ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                                }`}>
+                                                {alert.riskScore}/100
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{alert.amount.toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{alert.status}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No high risk alerts found.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

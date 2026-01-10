@@ -12,15 +12,16 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!user) {
+        if (!isLoading && !user) {
             router.push("/");
         }
-    }, [user, router]);
+    }, [user, isLoading, router]);
 
+    if (isLoading) return <div className="h-screen w-screen flex items-center justify-center">Loading...</div>;
     if (!user) return null;
 
     return (

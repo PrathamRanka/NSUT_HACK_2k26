@@ -85,6 +85,33 @@ export class AlertController {
         }
     }
 
+    static async getStats(req: Request, res: Response) {
+        try {
+            const totalAlerts = await Alert.countDocuments();
+            const recentAlerts = await Alert.countDocuments({
+                timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
+            });
+
+            // Calculate total flagged volume
+            const allAlerts = await Alert.find();
+            const totalVolume = allAlerts.reduce((sum, alert) => sum + alert.amount, 0);
+
+            // Get recent high risk alerts
+            const recentHighRisk = await Alert.find({ riskScore: { $gt: 75 } })
+                .sort({ timestamp: -1 })
+                .limit(5);
+
+            res.json({
+                totalAlerts,
+                recentAlerts,
+                totalVolume: `₹${(totalVolume / 10000000).toFixed(2)} Cr`,
+                recentHighRisk
+            });
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     static async getAlerts(req: Request, res: Response) {
         try {
             const alerts = await Alert.find().sort({ timestamp: -1 });

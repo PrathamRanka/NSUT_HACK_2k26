@@ -42,302 +42,38 @@ class Transaction(BaseModel):
     agency: str
     vendor: str
 
-df = pd.read_csv('/content/government-procurement-via-gebiz.csv')
-
-df
-
-df.tail()
-
-df.shape
-
-"""#EDA"""
-
-df.describe()
-
-df.info()
-
-df.isnull().sum()
-
-df['supplier_name'].value_counts()
-
-sns.boxplot(x=df["awarded_amt"])
-plt.show()
-
-"""#Preprocessing"""
-
-df["award_date"] = pd.to_datetime(df["award_date"], errors="coerce")
-
-#Removing Negatives
-df = df[df["awarded_amt"] > 0]
-
-#Filling Missing Values
-df["supplier_name"] = df["supplier_name"].fillna("UNKNOWN")
-df["agency"] = df["agency"].fillna("UNKNOWN")
-
-"""Contract value features"""
-
-df["log_amount"] = np.log1p(df["awarded_amt"])
-
-"""Supplier Risk Features"""
-
-supplier_stats = df.groupby("supplier_name")["awarded_amt"].agg(["mean", "count"]).reset_index()
-supplier_stats.columns = ["supplier_name", "supplier_avg_amt", "supplier_contract_count"]
-
-df = df.merge(supplier_stats, on="supplier_name", how="left")
-
-"""Agency Risk Features"""
-
-agency_stats = df.groupby("agency")["awarded_amt"].agg(["mean", "count"]).reset_index()
-agency_stats.columns = ["agency", "agency_avg_amt", "agency_contract_count"]
-
-df = df.merge(agency_stats, on="agency", how="left")
-
-GLOBAL_MEAN = df["awarded_amt"].mean()
-GLOBAL_99TH = df["awarded_amt"].quantile(0.99)
-
-"""Time Features"""
-
-df["year"] = df["award_date"].dt.year
-df["month"] = df["award_date"].dt.month
-df["day"] = df["award_date"].dt.day
-
-features = [
-    "awarded_amt",
-    "log_amount",
-    "supplier_avg_amt",
-    "supplier_contract_count",
-    "agency_avg_amt",
-    "agency_contract_count",
-    "year",
-    "month"
-]
-
-X = df[features].fillna(0)
-
-X.head()
-
-plt.figure(figsize=(6,6))
-sns.lineplot(x= X['agency_avg_amt'],y=X['supplier_avg_amt'])
-
-"""#Model Training
-
-Data Scaling
-"""
-
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-if_model = IsolationForest(
-    n_estimators = 300,
-    contamination='auto',
-    random_state=42
-)
-
-if_model.fit(X_scaled)
-
-df["if_score"] = -if_model.score_samples(X_scaled)
-
-df["if_pred"] = if_model.predict(X_scaled)
-
-"""#AutoEncoder"""
-
-X_scaled
-
-input_dim = X_scaled.shape[1]
-
-input_layer = layers.Input(shape=(input_dim,))
-
-"""Encoder"""
-
-encoded = layers.Dense(32, activation="relu")(input_layer)
-encoded = layers.Dense(16, activation="relu")(encoded)
-
-"""Decoder"""
-
-decoded = layers.Dense(32, activation="relu")(encoded)
-decoded = layers.Dense(input_dim, activation=None)(decoded)
-
-ae_model = models.Model(input_layer, decoded)
-
-ae_model.compile(
-    optimizer="adam",
-    loss="mse"
-)
-autoencoder.summary()
-
-"""AE Training"""
-
-history = ae_model.fit(
-    X_scaled, X_scaled,
-    epochs=30,
-    batch_size=64,
-    shuffle=True,
-    validation_split=0.1,
-    verbose=1
-)
-
-"""Error Calc"""
-
-reconstructions = ae_model.predict(X_scaled)
-
-reconstruction_error = np.mean(
-    np.square(X_scaled - reconstructions), axis=1
-)
-
-df["ae_score"] = reconstruction_error
-
-"""#Hybrid Score Calculation"""
-
-scaler_mm = MinMaxScaler()
-
-df[["if_norm", "ae_norm"]] = scaler_mm.fit_transform(
-    df[["if_score", "ae_score"]]
-)
-
-df["fraud_score"] = (
-    0.6 * df["if_norm"] +
-    0.4 * df["ae_norm"]
-)
-
-def assign_risk(score):
-    if score >= 0.8:
-        return "HIGH"
-    elif score >= 0.5:
-        return "MEDIUM"
+# Legacy Notebook Code - Disabled for API Stability
+if False: # Change to True if you want to run EDA/Training script manually
+    if os.path.exists("government-procurement-via-gebiz.csv"):
+        df = pd.read_csv('government-procurement-via-gebiz.csv')
     else:
-        return "LOW"
+        # Create empty DF or handle error gracefully if file is missing during dev
+        print("Warning: Dataset not found. Using empty placeholder.")
+        df = pd.DataFrame(columns=["awarded_amt", "supplier_name", "agency", "award_date"])
 
-df["risk_level"] = df["fraud_score"].apply(risk_label)
-
-df.head()
-
-df.tail()
-
-"""#Generating Reasons"""
-
-def compute_risk_score(row):
-    risk_score = 10
-    is_anomaly = False
-    reasons = []
-
-    agency_avg = row.get("agency_avg_amt", 0)
-    agency_std = row.get("agency_std", 0)
-
-    # ---------- LAYER 1: Agency Z-Score ----------
-    if pd.notna(agency_std) and agency_std > 0:
-        z = (row["awarded_amt"] - agency_avg) / agency_std
-        if z > 3:
-            risk_score += 40
-            reasons.append(f"Amount is {z:.1f}x deviations above agency average")
-            is_anomaly = True
-
-    # ---------- LAYER 2: Global Extreme Check ----------
-    if row["awarded_amt"] > GLOBAL_99TH:
-        risk_score += 30
-        reasons.append("Amount is in Global Top 1% of contracts")
-        is_anomaly = True
-
-    # ---------- LAYER 3: Hybrid AI ----------
-    if row["if_pred"] == -1:
-        risk_score += 25
-        reasons.append("AI detected unusual procurement pattern")
-        is_anomaly = True
-
-    # ---------- LAYER 4: Forensic Heuristics ----------
-    if row["awarded_amt"] > 10000 and row["awarded_amt"] % 1000 == 0:
-        risk_score += 15
-        reasons.append("Suspiciously round contract amount")
-
-    if row["awarded_amt"] > 5_000_000:   # 50 Lakhs
-        risk_score += 10
-        reasons.append("High value government contract")
-
-    # ---------- Cap score ----------
-    risk_score = min(99, risk_score)
-
-    return pd.Series([risk_score, is_anomaly, reasons])
-
-df[["risk_score", "is_anomaly", "service_reasons"]] = df.apply(compute_risk_score, axis=1)
-
-df[["fraud_score", "risk_score", "is_anomaly"]].head()
-
-def generate_reasons(row):
-    reasons = []
-
-    agency_std = row.get("agency_std", 0)
-    agency_avg = row.get("agency_avg_amt", 0)
-
-    # Agency Z-score anomaly
-    if pd.notna(agency_std) and agency_std > 0:
-        z = (row["awarded_amt"] - agency_avg) / agency_std
-        if z > 3:
-            reasons.append(f"Amount is {z:.1f}x deviations above agency average")
-
-    # Supplier favoritism
-    if row.get("supplier_contract_count", 0) > 10:
-        reasons.append("Supplier has unusually high number of contracts")
-
-    # Extreme contract value
-    if agency_avg > 0 and row["awarded_amt"] > agency_avg * 5:
-        reasons.append("Contract value far exceeds agency norm")
-
-    # End-of-year budget dumping
-    if row.get("month") in [11, 12, 1, 2, 3]:
-        reasons.append("Contract awarded near financial year end")
-
-    # Round number fraud
-    if row["awarded_amt"] > 10000 and row["awarded_amt"] % 1000 == 0:
-        reasons.append("Suspiciously round contract amount")
-
-    if len(reasons) == 0:
-        reasons.append("Detected unusual procurement behavior")
-
-    return reasons
-
-import math
-
-def safe_int(x):
-    if pd.isna(x) or math.isnan(x):
-        return None
-    return int(x)
-
-def generate_fraud_report(row):
-    return {
-        "supplier_name": row.get("supplier_name", "Unknown"),
-        "agency": row.get("agency", "Unknown"),
-        "awarded_amt": float(row["awarded_amt"]),
-        "fraud_score": round(float(row["fraud_score"]), 3),
-        "risk_score": int(row["risk_score"]),
-        "risk_level": row["risk_level"],
-        "is_anomaly": bool(row["is_anomaly"]),
-        "year": safe_int(row.get("year")),
-        "month": safe_int(row.get("month")),
-        "reasons": generate_reasons(row) + row["service_reasons"]
-    }
-
-alerts_df = df.sort_values("risk_score", ascending=False).head(20)
-fraud_reports = alerts_df.apply(generate_fraud_report, axis=1).tolist()
-fraud_reports[:3]
-
-"""#Json Conversion"""
-
-with open("fraud_reports.json", "w") as f:
-    json.dump(fraud_reports, f, indent=4)
+# LEGACY CODE COMMENTED OUT FOR STABILITY
+# ... (This logic is redundant as API re-trains its own model on startup)
+# ...
 
 # ----------------------------------------------------------------------------------
-# API LOGIC (Migrated from service.py)
+# API LOGIC
 # ----------------------------------------------------------------------------------
+
+import traceback
 
 @app.on_event("startup")
 def load_and_train_api_model():
+    # ... (same as before)
     global api_model, encoders, data_stats
     print("Loading API dataset...")
     try:
-        # Load the user's CSV (Reading again to ensure API logic isolation)
+        # Load the user's CSV
         if os.path.exists("government-procurement-via-gebiz.csv"):
              df_api = pd.read_csv("government-procurement-via-gebiz.csv")
         else:
-             df_api = pd.read_csv('/content/government-procurement-via-gebiz.csv') # Fallback to colab path if needed
+             print("Warning: API Dataset not found. Using minimal placeholder logic.")
+             df_api = pd.DataFrame(columns=["awarded_amt", "agency", "supplier_name"])
+             df_api.loc[0] = [1000, "Unknown", "Unknown"]
 
         # Preprocessing
         if df_api['awarded_amt'].dtype == object:
@@ -345,19 +81,18 @@ def load_and_train_api_model():
 
         # 1. Agency Encoding (Context)
         le_agency = LabelEncoder()
-        # Handle missing/mixed types by converting to string
         df_api['agency'] = df_api['agency'].astype(str).fillna('Unknown')
         df_api['encoded_agency'] = le_agency.fit_transform(df_api['agency'])
         encoders['agency'] = le_agency
 
         print(f"API Model: Training on {len(df_api)} records with {len(le_agency.classes_)} agencies...")
 
-        # 2. Train Context-Aware Model (Amount + Agency)
+        # 2. Train Context-Aware Model
         X_api = df_api[['awarded_amt', 'encoded_agency']].values
         api_model = IsolationForest(contamination=0.02, random_state=42, n_estimators=200)
         api_model.fit(X_api)
 
-        # 3. Compute Statistical Baselines per Agency
+        # 3. Compute Statistical Baselines
         agency_stats = df_api.groupby('agency')['awarded_amt'].agg(['mean', 'std', 'max']).to_dict('index')
         data_stats['agency_stats'] = agency_stats
         data_stats['global_mean'] = df_api['awarded_amt'].mean()
@@ -367,7 +102,6 @@ def load_and_train_api_model():
 
     except Exception as e:
         print(f"Error training API model: {e}")
-        # Robust Fallback
         api_model = IsolationForest(contamination=0.1)
         api_model.fit(np.array([[1000, 0], [5000, 0], [10000, 0], [500000, 0]]))
 
@@ -394,7 +128,6 @@ def predict_fraud(tx: Transaction):
                 encoded_agency = 0 # Default to index 0 if unknown
 
         # --- LAYER 1: STATISTICAL OUTLIER (Z-Score) ---
-        # Compare against THIS agency's history
         stats = data_stats.get('agency_stats', {}).get(agency_name)
         if stats and not np.isnan(stats['std']) and stats['std'] > 0:
             z_score = (tx.amount - stats['mean']) / stats['std']
@@ -406,9 +139,8 @@ def predict_fraud(tx: Transaction):
              risk_score += 30
              reasons.append("Amount is in Global Top 1%")
 
-        # --- LAYER 2: ISOLATION FOREST (Contextual Anomaly) ---
+        # --- LAYER 2: ISOLATION FOREST ---
         if api_model:
-            # Predict using Amount + Agency
             pred = api_model.predict([[tx.amount, encoded_agency]])[0]
             if pred == -1:
                 risk_score += 35
@@ -416,17 +148,14 @@ def predict_fraud(tx: Transaction):
                 is_anomaly = True
 
         # --- LAYER 3: FORENSIC HEURISTICS ---
-        # 1. Round Number Fraud
         if tx.amount > 10000 and tx.amount % 1000 == 0:
              risk_score += 15
              reasons.append("Suspiciously round number (Forensic Flag)")
 
-        # 2. Velocity/Limit Checks
-        if tx.amount > 5000000: # 50 Lakhs
+        if tx.amount > 5000000: 
              risk_score += 10
              reasons.append("High Value Transaction Monitor")
 
-        # Cap score
         risk_score = min(99, risk_score)
 
         return {
@@ -437,6 +166,7 @@ def predict_fraud(tx: Transaction):
 
     except Exception as e:
         print(f"Prediction Error: {e}")
+        traceback.print_exc() # PRINT FULL STACK TRACE TO CONSOLE
         return {"risk_score": 50, "is_anomaly": False, "reasons": ["Error in AI Engine"]}
 
 if __name__ == "__main__":
