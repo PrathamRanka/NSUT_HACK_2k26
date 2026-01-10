@@ -1,23 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { UserRole } from "@fds/common";
-import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const { login } = useAuth();
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.OFFICER);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    // Simulate network delay
-    login(selectedRole);
-    router.push("/dashboard");
-    setIsLoggingIn(false);
+    setError("");
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Login failed');
+      }
+
+      const data = await response.json();
+
+      // Store token and user info
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -36,44 +57,55 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                Select Access Role
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
               </label>
-              <select
-                id="role"
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-transparent bg-white text-gray-900"
-              >
-                {Object.values(UserRole).map((role) => (
-                  <option key={role} value={role}>
-                    {role.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="officer@pfms.gov.in"
+              />
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-sm border border-blue-100 text-sm text-blue-800 mb-4">
-              <p className="font-semibold mb-1">Security Notice</p>
-              <p>Access to this system is restricted to authorized officers only. All activities are monitored and audited.</p>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="bg-blue-50 border-l-4 border-blue-900 p-3 text-xs text-blue-800">
+              <p className="font-bold">Test Credentials:</p>
+              <p>Email: admin@pfms.gov.in</p>
+              <p>Password: admin123</p>
             </div>
 
             <button
               type="submit"
               disabled={isLoggingIn}
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-sm shadow-sm text-sm font-medium text-white bg-blue-900 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 ${isLoggingIn ? "opacity-75 cursor-wait" : ""
-                }`}
+              className="w-full bg-blue-900 text-white py-2 px-4 rounded-md hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoggingIn ? "Authenticating..." : "Secure Login"}
             </button>
           </form>
-        </div>
-        <div className="bg-gray-50 px-8 py-4 border-t border-gray-200 text-center">
-          <p className="text-xs text-gray-500">
-            For technical support, contact the NIC Helpdesk.
-            <br />
-            v1.0.0 (Build 2026.1)
-          </p>
         </div>
       </div>
     </main>

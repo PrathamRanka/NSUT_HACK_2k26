@@ -1,53 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { UserRole } from '@fds/common';
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                id: string;
-                role: UserRole;
-            };
-        }
-    }
+const JWT_SECRET = process.env.JWT_SECRET || 'sahayak-secret-key-change-in-production';
+
+export interface AuthRequest extends Request {
+    user?: {
+        id: string;
+        email: string;
+        role: string;
+    };
 }
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-        // For development/hackathon, we might allow a 'mock-auth' header or bypass if specified
-        if (process.env.NODE_ENV === 'development' && req.headers['x-mock-role']) {
-            req.user = {
-                id: 'mock-user-id',
-                role: req.headers['x-mock-role'] as UserRole
-            };
-            return next();
-        }
-        return res.sendStatus(401);
+        return res.status(401).json({ error: 'Access token required' });
     }
 
-    // Mock JWT verification for now (replace with real secret later)
     try {
-        // const user = jwt.verify(token, process.env.JWT_SECRET as string) as any;
-        // req.user = user;
-
-        // Mock decoding for hackathon speed if no real JWT issued yet
-        const decoded = { id: 'user-123', role: UserRole.OFFICER };
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
         req.user = decoded;
-
         next();
-    } catch (err) {
-        return res.sendStatus(403);
+    } catch (error) {
+        return res.status(403).json({ error: 'Invalid or expired token' });
     }
 };
 
-export const requireRole = (roles: UserRole[]) => {
-    return (req: Request, res: Response, next: NextFunction) => {
-        if (!req.user) return res.sendStatus(401);
-        if (!roles.includes(req.user.role)) return res.sendStatus(403);
+export const authorizeRoles = (...roles: string[]) => {
+    return (req: AuthRequest, res: Response, next: NextFunction) => {
+        if (!req.user || !roles.includes(req.user.role)) {
+            return res.status(403).json({ error: 'Insufficient permissions' });
+        }
         next();
     };
 };

@@ -1,11 +1,24 @@
 import { Router } from 'express';
 import { ResourceController } from '../controllers/resource.controller';
+import { SchemeController } from '../controllers/scheme.controller';
+import { VendorController } from '../controllers/vendor.controller';
 
 const router = Router();
 
+// Read-only routes
 router.get('/schemes', ResourceController.getSchemes);
 router.get('/vendors', ResourceController.getVendors);
 router.get('/audit-logs', ResourceController.getAuditLogs);
 router.get('/health', ResourceController.getHealth);
+
+// Scheme CRUD
+router.post('/schemes', SchemeController.createScheme);
+router.put('/schemes/:id', SchemeController.updateScheme);
+router.delete('/schemes/:id', SchemeController.deleteScheme);
+
+// Vendor CRUD
+router.post('/vendors', VendorController.createVendor);
+router.put('/vendors/:id', VendorController.updateVendor);
+router.delete('/vendors/:id', VendorController.deleteVendor);
 
 export default router;

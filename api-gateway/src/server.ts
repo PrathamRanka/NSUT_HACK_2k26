@@ -1,7 +1,7 @@
 import app from './app';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { Scheme, Vendor, Alert, AuditLog } from './models';
+import { Scheme, Vendor, Alert, AuditLog, User } from './models';
 
 dotenv.config();
 
@@ -14,8 +14,20 @@ async function seedDatabase() {
         const schemeCount = await Scheme.countDocuments();
         const vendorCount = await Vendor.countDocuments();
         const alertCount = await Alert.countDocuments();
+        const userCount = await User.countDocuments();
 
-        console.log(`🌱 Seeding Check: Schemes=${schemeCount}, Vendors=${vendorCount}, Alerts=${alertCount}`);
+        console.log(`🌱 Seeding Check: Schemes=${schemeCount}, Vendors=${vendorCount}, Alerts=${alertCount}, Users=${userCount}`);
+
+        // Seed test user
+        if (userCount === 0) {
+            console.log("   -> Inserting Test User...");
+            await User.create({
+                email: 'admin@pfms.gov.in',
+                password: 'admin123', // Will be hashed by pre-save hook
+                name: 'Admin User',
+                role: 'admin'
+            });
+        }
 
         if (schemeCount === 0) {
             console.log("   -> Inserting Default Schemes...");

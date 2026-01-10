@@ -95,3 +95,6 @@ export const Scheme = mongoose.model<IScheme>('Scheme', SchemeSchema);
 export const Vendor = mongoose.model<IVendor>('Vendor', VendorSchema);
 export const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
 export const AuditLog = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
+
+// Export User model
+export { User } from './User';
