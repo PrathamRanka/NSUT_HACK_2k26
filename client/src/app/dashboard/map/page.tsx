@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, RefreshCw, MapPin } from "lucide-react";
 import dynamic from 'next/dynamic';
+import api from "@/lib/api";
+import { useRouter } from "next/navigation";
+import 'leaflet/dist/leaflet.css';
 
 // Dynamically import Leaflet to avoid SSR issues
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -12,6 +15,7 @@ const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ss
 const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
 
 export default function MapPage() {
+    const router = useRouter();
     const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [alerts, setAlerts] = useState<any[]>([]);
@@ -20,12 +24,23 @@ export default function MapPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:8000/alerts');
-            if (res.ok) {
-                const data = await res.json();
+            const res = await api.get('/alerts');
+            if (res.data) {
+                const data = res.data;
                 // Filter alerts that have coordinates
-                const alertsWithCoords = data.filter((a: any) => a.latitude && a.longitude);
-                setAlerts(alertsWithCoords);
+                const alertsWithCoords = data.filter((a: any) => a.coordinates && a.coordinates.length === 2);
+                // Map [lat, lng] from API to expected format if needed, but API sends coordinates: [lat, lng] usually or [lng, lat] depending on GeoJSON.
+                // Alert Controller says: districtCoords ... [28..., 77...] (Lat, Lng)
+                // Let's ensure we handle generic 'coordinates' field or lat/long if separated.
+                // The API controller creates: coordinates: [lat, lng].
+
+                const processed = alertsWithCoords.map((a: any) => ({
+                    ...a,
+                    latitude: a.coordinates[0],
+                    longitude: a.coordinates[1]
+                }));
+
+                setAlerts(processed);
             }
         } catch (e) {
             console.error("Map fetch failed", e);
@@ -42,8 +57,9 @@ export default function MapPage() {
     }, []);
 
     const highRiskAlerts = alerts.filter(a => a.riskScore > 70);
-    const centerLat = alerts.length > 0 ? alerts.reduce((sum, a) => sum + a.latitude, 0) / alerts.length : 20.5937;
-    const centerLng = alerts.length > 0 ? alerts.reduce((sum, a) => sum + a.longitude, 0) / alerts.length : 78.9629;
+    // Use India Center as default
+    const centerLat = 20.5937;
+    const centerLng = 78.9629;
 
     return (
         <div className="space-y-6">
@@ -57,16 +73,16 @@ export default function MapPage() {
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span className="flex items-center"><span className="block w-3 h-3 bg-red-500 rounded-full mr-1"></span> High Risk</span>
-                        <span className="flex items-center"><span className="block w-3 h-3 bg-orange-500 rounded-full mr-1"></span> Medium</span>
-                        <span className="flex items-center"><span className="block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> Low</span>
+                        <span className="flex items-center"><span className="block w-3 h-3 bg-red-500 rounded-full mr-1"></span> Critical</span>
+                        <span className="flex items-center"><span className="block w-3 h-3 bg-orange-500 rounded-full mr-1"></span> High</span>
+                        <span className="flex items-center"><span className="block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> Medium</span>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Map Viewer */}
-                <div className="lg:col-span-2 bg-white rounded-lg shadow-lg relative h-[600px] overflow-hidden border border-gray-200">
+                <div className="lg:col-span-2 bg-white rounded-lg shadow-lg relative h-[600px] overflow-hidden border border-gray-200 z-0">
                     {mapReady && typeof window !== 'undefined' && (
                         <MapContainer
                             center={[centerLat, centerLng]}
@@ -83,12 +99,14 @@ export default function MapPage() {
                                     <CircleMarker
                                         key={alert.id}
                                         center={[alert.latitude, alert.longitude]}
-                                        radius={8 + (alert.riskScore / 10)}
-                                        fillColor={color}
-                                        color="white"
-                                        weight={2}
-                                        opacity={1}
-                                        fillOpacity={0.7}
+                                        radius={8 + (alert.riskScore / 20)}
+                                        pathOptions={{
+                                            fillColor: color,
+                                            color: 'white',
+                                            weight: 2,
+                                            opacity: 1,
+                                            fillOpacity: 0.7
+                                        }}
                                         eventHandlers={{
                                             click: () => setSelectedAlert(alert)
                                         }}
@@ -97,7 +115,7 @@ export default function MapPage() {
                                             <div className="text-sm">
                                                 <p className="font-bold">{alert.id}</p>
                                                 <p>Risk: {alert.riskScore}/100</p>
-                                                <p>Amount: ₹{alert.amount.toLocaleString()}</p>
+                                                <p>Amount: ₹{alert.amount.toLocaleString('en-IN')}</p>
                                                 <p>Location: {alert.district}</p>
                                             </div>
                                         </Popup>
@@ -107,7 +125,7 @@ export default function MapPage() {
                         </MapContainer>
                     )}
 
-                    <div className="absolute top-4 right-4 bg-white p-3 rounded text-xs shadow-lg border border-gray-200 z-[1000]">
+                    <div className="absolute top-4 right-4 bg-white/90 p-3 rounded text-xs shadow-lg border border-gray-200 z-[400] backdrop-blur-sm">
                         <p className="font-bold text-gray-900 mb-1">Live Feed</p>
                         <p className="text-gray-600">Total Alerts: {alerts.length}</p>
                         <p className="text-red-600">High Risk: {highRiskAlerts.length}</p>
@@ -115,7 +133,7 @@ export default function MapPage() {
                 </div>
 
                 {/* Alert Details Panel */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 h-[600px] overflow-y-auto">
                     {selectedAlert ? (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -139,7 +157,7 @@ export default function MapPage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Amount:</span>
-                                    <span className="font-bold">₹{selectedAlert.amount.toLocaleString()}</span>
+                                    <span className="font-bold">₹{selectedAlert.amount.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Scheme:</span>
@@ -164,7 +182,10 @@ export default function MapPage() {
                                 </ul>
                             </div>
 
-                            <button className="w-full mt-4 bg-blue-900 text-white py-2 rounded-sm text-sm font-medium hover:bg-blue-800">
+                            <button
+                                onClick={() => router.push(`/dashboard/alerts/${selectedAlert.id}`)}
+                                className="w-full mt-4 bg-blue-900 text-white py-2 rounded-sm text-sm font-medium hover:bg-blue-800 transition-colors"
+                            >
                                 View Full Details
                             </button>
                         </div>
