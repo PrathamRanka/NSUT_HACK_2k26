@@ -1,108 +1,235 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Vendor } from "@fds/common";
-import { ArrowLeft, Building2, TrendingUp, AlertOctagon, FileText } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import api from '@/lib/api';
+import {
+    Building2, MapPin, AlertTriangle, TrendingUp,
+    DollarSign, Activity, FileText, ArrowLeft, ShieldCheck, ShieldAlert
+} from 'lucide-react';
 
-// Using simple CSS for "Government Grade" reliability and speed.
-
-
-// Basic mock chart components if recharts not installed, or I can install it.
-// Given constraints, I will build simple CSS charts to avoid big installs unless needed. 
-// "Boring reliability" means standard HTML/CSS is often better than complex JS libs for government.
-
-export default function VendorProfilePage({ params }: { params: { id: string } }) {
-    const [vendor, setVendor] = useState<Vendor | null>(null);
+export default function VendorProfilePage() {
+    const { id } = useParams();
+    const router = useRouter();
+    const [profile, setProfile] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`http://localhost:8000/vendors/${params.id}`)
-            .then(res => res.json())
-            .then(data => setVendor(data))
-            .catch(err => console.error(err));
-    }, [params.id]);
+        const fetchProfile = async () => {
+            try {
+                const res = await api.get(`/vendors/${id}/risk-profile`);
+                setProfile(res.data);
+            } catch (error) {
+                console.error("Failed to fetch vendor profile", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, [id]);
 
-    if (!vendor) return <div className="p-10 text-center">Loading Vendor Profile...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    );
+
+    if (!profile) return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+            <h2 className="text-xl font-bold text-gray-700">Vendor Not Found</h2>
+            <button onClick={() => router.back()} className="mt-4 text-blue-600 hover:underline">Go Back</button>
+        </div>
+    );
+
+    const isHighRisk = parseFloat(profile.averageRiskScore) > 70;
 
     return (
-        <div className="space-y-6">
-            <Link href="/dashboard/vendors" className="flex items-center text-sm text-gray-500 hover:text-gray-900">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back to Vendors
-            </Link>
-
-            {/* Header */}
-            <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200 flex justify-between items-start">
-                <div className="flex items-start">
-                    <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
-                        <Building2 className="h-6 w-6 text-gray-500" />
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{vendor.name}</h1>
-                        <div className="flex items-center space-x-2 mt-1">
-                            <span className="text-sm text-gray-500">GSTIN: {vendor.gstin}</span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${vendor.accountStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {vendor.accountStatus}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <a href={`/dashboard/network?entityId=${vendor.id}`} className="px-4 py-2 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 flex items-center">
-                    View Link Graph
-                </a>
-                <div className="text-right">
-                    <p className="text-sm text-gray-500">Risk Score</p>
-                    <div className={`text-3xl font-bold ${vendor.riskScore > 50 ? 'text-red-600' : 'text-green-600'
-                        }`}>{vendor.riskScore}/100</div>
+        <div className="min-h-screen bg-gray-50/50 p-6 space-y-6">
+            {/* Header / Navigation */}
+            <div className="flex items-center gap-4 mb-6">
+                <button
+                    onClick={() => router.back()}
+                    className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                    <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Vendor Profile</h1>
+                    <p className="text-gray-500 text-sm">Detailed intelligence and risk analysis</p>
                 </div>
             </div>
 
-            {/* Direct vs Scheme Analysis (The "Crucial" Feature) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4">Payment Source Breakdown</h3>
-
-                    {/* Visualizing Direct vs Scheme */}
-                    <div className="space-y-4">
-                        <div>
-                            <div className="flex justify-between text-sm mb-1">
-                                <span>Scheme Linked (PM-KISAN, etc)</span>
-                                <span className="font-semibold">35%</span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2.5">
-                                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: '35%' }}></div>
-                            </div>
+            {/* Main Vendor Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="flex items-center gap-5">
+                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg ${isHighRisk ? 'bg-red-500' : 'bg-blue-600'}`}>
+                            {profile.vendorName.charAt(0)}
                         </div>
                         <div>
-                            <div className="flex justify-between text-sm mb-1">
-                                <span className="flex items-center text-orange-700 font-medium">
-                                    Direct Ad-hoc Payments
-                                    <AlertOctagon className="h-3 w-3 ml-1" />
+                            <h2 className="text-3xl font-bold text-gray-900">{profile.vendorName}</h2>
+                            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                                    <Building2 className="w-3 h-3" /> ID: {profile.vendorId}
                                 </span>
-                                <span className="font-semibold text-orange-700">65%</span>
+                                {/* You could add real address here if available in risk profile payload */}
+                                <span className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                                    <MapPin className="w-3 h-3" /> Registered Entity
+                                </span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2.5">
-                                <div className="bg-orange-500 h-2.5 rounded-full" style={{ width: '65%' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                        <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Risk Status</p>
+                            <div className={`mt-1 inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${isHighRisk ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'}`}>
+                                {isHighRisk ? <ShieldAlert className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                                <span className="font-bold">{isHighRisk ? 'High Risk' : 'Healthy'}</span>
                             </div>
-                            <p className="text-xs text-orange-600 mt-1">
-                                * High volume of unstructured direct payments detected.
-                            </p>
+                        </div>
+                        <div className="text-right pl-6 border-l border-gray-100">
+                            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Trust Score</p>
+                            <p className="text-3xl font-black text-gray-900">{Math.max(0, 100 - parseFloat(profile.averageRiskScore)).toFixed(0)}<span className="text-lg text-gray-400 font-medium">/100</span></p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-sm shadow-sm border border-gray-200">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase mb-4">Risk Factors</h3>
-                    <ul className="space-y-3">
-                        <li className="flex items-start bg-red-50 p-3 rounded-sm text-sm text-red-800 border border-red-100">
-                            <TrendingUp className="h-4 w-4 mr-2 mt-0.5" />
-                            Sudden spike in payment volume (400% vs last month).
-                        </li>
-                        <li className="flex items-start bg-yellow-50 p-3 rounded-sm text-sm text-yellow-800 border border-yellow-100">
-                            <FileText className="h-4 w-4 mr-2 mt-0.5" />
-                            3 invoices missing matching Purchase Orders.
-                        </li>
-                    </ul>
+                {/* KPI Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100 bg-gray-50/30">
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                                <DollarSign className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">Total Volume</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900">{profile.totalVolume}</p>
+                        <p className="text-xs text-gray-500 mt-1">Lifetime processed amount</p>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+                                <Activity className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">Transactions</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900">{profile.totalTransactions}</p>
+                        <p className="text-xs text-gray-500 mt-1">Total payments received</p>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                <AlertTriangle className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">Avg Risk</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${parseFloat(profile.averageRiskScore) > 50 ? 'text-orange-600' : 'text-green-600'}`}>
+                            {profile.averageRiskScore}%
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">AI calculated average</p>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-pink-100 rounded-lg text-pink-600">
+                                <TrendingUp className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">Risk Trend</span>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 capitalize">{profile.riskTrend}</p>
+                        <p className="text-xs text-gray-500 mt-1">Based on last 10 txns</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Risk Analysis Panel */}
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-indigo-500" />
+                            AI Risk Analysis
+                        </h3>
+
+                        {profile.suspiciousPatterns && profile.suspiciousPatterns.length > 0 ? (
+                            <div className="space-y-3">
+                                {profile.suspiciousPatterns.map((pattern: string, i: number) => (
+                                    <div key={i} className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-800 flex gap-3 items-start">
+                                        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                        <span>{pattern}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-green-50 border border-green-100 rounded-lg text-center">
+                                <ShieldCheck className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                                <p className="text-green-800 font-medium">No Suspicious Patterns</p>
+                                <p className="text-xs text-green-600 mt-1">This vendor appears clean based on current transaction history.</p>
+                            </div>
+                        )}
+
+                        <div className="mt-6 pt-6 border-t border-gray-100">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Associated Schemes</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {/* Should ideally come from API, fallback for UI demo */}
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border border-gray-200">PM-KISAN</span>
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md border border-gray-200">MGNREGA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Transaction History */}
+                <div className="lg:col-span-2">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-gray-400" />
+                                Recent Transactions
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-3">Alert ID</th>
+                                        <th className="px-6 py-3">Date</th>
+                                        <th className="px-6 py-3">Amount</th>
+                                        <th className="px-6 py-3">Risk Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {profile.recentAlerts && profile.recentAlerts.map((alert: any) => (
+                                        <tr key={alert.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 font-mono text-gray-600">{alert.id}</td>
+                                            <td className="px-6 py-4 text-gray-900">
+                                                {new Date(alert.date || Date.now()).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-gray-900">₹{alert.amount?.toLocaleString()}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${alert.riskScore > 70 ? 'bg-red-100 text-red-800' :
+                                                        alert.riskScore > 40 ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-green-100 text-green-800'
+                                                    }`}>
+                                                    {alert.riskScore}/100
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(!profile.recentAlerts || profile.recentAlerts.length === 0) && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
+                                                No recent transactions found.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

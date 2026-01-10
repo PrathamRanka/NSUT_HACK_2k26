@@ -17,9 +17,11 @@ const VendorSchema = new mongoose.Schema({
     totalVolume: Number,
     flaggedTransactions: Number,
     flaggedTransactions: Number,
+    flaggedTransactions: Number,
     accountStatus: String, // 'ACTIVE' | 'FROZEN' | 'UNDER_WATCH'
     latitude: Number,
-    longitude: Number
+    longitude: Number,
+    operatingSchemes: [String] // List of schemes the vendor is enrolled in
 });
 
 const AlertSchema = new mongoose.Schema({
@@ -71,6 +73,7 @@ export interface IVendor extends mongoose.Document {
     accountStatus: string;
     latitude?: number;
     longitude?: number;
+    operatingSchemes?: string[];
 }
 
 export interface IAlert extends mongoose.Document {

@@ -99,7 +99,7 @@ export default function AddPaymentForm() {
                     address: newVendor.address || 'Unknown',
                     latitude: newVendor.latitude ? parseFloat(newVendor.latitude) : undefined,
                     longitude: newVendor.longitude ? parseFloat(newVendor.longitude) : undefined,
-                    riskScore: 50,
+                    riskScore: 0, // Default to 0 for new vendors as per requirement
                     status: 'ACTIVE'
                 });
 

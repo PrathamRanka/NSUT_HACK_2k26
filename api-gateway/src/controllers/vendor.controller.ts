@@ -16,11 +16,11 @@ export class VendorController {
             const alerts = await Alert.find({ vendor: vendor.name });
 
             const totalTransactions = alerts.length;
-            const totalVolume = alerts.reduce((sum, a) => sum + a.amount, 0);
+            const totalVolume = alerts.reduce((sum, a) => sum + (a.amount || 0), 0);
             const averageRiskScore = totalTransactions > 0
-                ? alerts.reduce((sum, a) => sum + a.riskScore, 0) / totalTransactions
+                ? alerts.reduce((sum, a) => sum + (a.riskScore || 0), 0) / totalTransactions
                 : 0;
-            const flaggedTransactions = alerts.filter(a => a.riskScore > 70).length;
+            const flaggedTransactions = alerts.filter(a => (a.riskScore || 0) > 70).length;
 
             // Calculate risk trend (last 10 vs previous 10)
             const sortedAlerts = alerts.sort((a, b) =>
@@ -86,7 +86,7 @@ export class VendorController {
 
     static async createVendor(req: Request, res: Response) {
         try {
-            const { id, name, pan, address, riskScore, status, latitude, longitude } = req.body;
+            const { id, name, pan, address, riskScore, status, latitude, longitude, selectedScheme } = req.body;
 
             const vendor = await Vendor.create({
                 id,
@@ -96,7 +96,8 @@ export class VendorController {
                 riskScore: riskScore || 0,
                 status: status || 'ACTIVE',
                 latitude,
-                longitude
+                longitude,
+                operatingSchemes: selectedScheme ? [selectedScheme] : []
             });
 
             res.status(201).json(vendor);

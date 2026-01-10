@@ -1,32 +1,75 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Building2, AlertTriangle, ArrowUpRight, Trash2, XCircle } from "lucide-react";
+import { Search, Building2, AlertTriangle, ArrowUpRight, Trash2, XCircle, MapPin, Loader2 } from "lucide-react";
 import { Vendor } from "@fds/common";
 import Link from "next/link";
-
 import api from "@/lib/api";
 
 export default function VendorsPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [schemes, setSchemes] = useState<any[]>([]);
     const [deleteImpact, setDeleteImpact] = useState<{ vendorId: string, message: string, impact: any } | null>(null);
 
     useEffect(() => {
+        // Fetch Vendors
         api.get('/vendors')
             .then(res => setVendors(res.data))
+            .catch(err => console.error(err));
+
+        // Fetch Schemes for Dropdown
+        api.get('/schemes')
+            .then(res => setSchemes(res.data))
             .catch(err => console.error(err));
     }, []);
 
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ name: '', gstin: '', riskScore: 10 });
+    const [formData, setFormData] = useState({
+        name: '',
+        gstin: '',
+        riskScore: 0,
+        address: '',
+        selectedScheme: '',
+        latitude: '',
+        longitude: ''
+    });
+    const [geocoding, setGeocoding] = useState(false);
+
+    const fetchCoordinates = async () => {
+        if (!formData.address) return;
+        setGeocoding(true);
+        try {
+            // Using OpenStreetMap Nominatim (Free, No Key Required for demo)
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.address)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    latitude: data[0].lat,
+                    longitude: data[0].lon
+                }));
+            } else {
+                alert("Could not find coordinates for this address.");
+            }
+        } catch (e) {
+            alert("Geocoding failed. Please enter coordinates manually if known.");
+        } finally {
+            setGeocoding(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await api.post('/vendors', {
+                id: `VEN-${Math.floor(1000 + Math.random() * 9000)}`,
                 name: formData.name,
                 gstin: formData.gstin,
+                address: formData.address || 'Unknown',
                 riskScore: formData.riskScore,
+                selectedScheme: formData.selectedScheme,
+                latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+                longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
                 totalVolume: 0,
                 flaggedTransactions: 0,
                 accountStatus: 'ACTIVE'
@@ -34,6 +77,7 @@ export default function VendorsPage() {
             setShowModal(false);
             const res = await api.get('/vendors');
             setVendors(res.data);
+            setFormData({ name: '', gstin: '', riskScore: 0, address: '', selectedScheme: '', latitude: '', longitude: '' });
         } catch (error) {
             console.error(error);
         }
@@ -43,12 +87,10 @@ export default function VendorsPage() {
         try {
             setDeleteImpact(null);
             await api.delete(`/vendors/${vendorId}${confirm ? '?confirm=true' : ''}`);
-            // Reload list
             const res = await api.get('/vendors');
             setVendors(res.data);
         } catch (error: any) {
             if (error.response?.status === 409) {
-                // Impact analysis - requires confirmation
                 setDeleteImpact({
                     vendorId,
                     message: error.response.data.message,
@@ -125,15 +167,68 @@ export default function VendorsPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Vendor Name</label>
-                                <input required className="w-full border p-2 rounded" placeholder="Agro Tech Pvt Ltd" onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <input required className="w-full border p-2 rounded" placeholder="Agro Tech Pvt Ltd" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">GSTIN / ID</label>
-                                <input required className="w-full border p-2 rounded" placeholder="09AAAAA0000A1Z5" onChange={e => setFormData({ ...formData, gstin: e.target.value })} />
+                                <input required className="w-full border p-2 rounded" placeholder="09AAAAA0000A1Z5" value={formData.gstin} onChange={e => setFormData({ ...formData, gstin: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Address / City</label>
+                                <div className="flex gap-2">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            required
+                                            className="w-full border p-2 rounded pr-8"
+                                            placeholder="New Delhi"
+                                            value={formData.address}
+                                            onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                        />
+                                        <MapPin className="w-4 h-4 text-gray-400 absolute right-2 top-3" />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={fetchCoordinates}
+                                        disabled={!formData.address || geocoding}
+                                        className="px-3 py-2 bg-blue-100 text-blue-700 text-xs font-bold rounded hover:bg-blue-200 disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                        {geocoding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                                        Geocode
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <input
+                                    type="text"
+                                    value={formData.latitude}
+                                    readOnly
+                                    className="w-1/2 border p-2 rounded bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
+                                    placeholder="Lat"
+                                />
+                                <input
+                                    type="text"
+                                    value={formData.longitude}
+                                    readOnly
+                                    className="w-1/2 border p-2 rounded bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
+                                    placeholder="Lng"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Associated Scheme</label>
+                                <select
+                                    className="w-full border p-2 rounded bg-white"
+                                    value={formData.selectedScheme}
+                                    onChange={e => setFormData({ ...formData, selectedScheme: e.target.value })}
+                                >
+                                    <option value="">Select Primary Scheme</option>
+                                    {schemes.map((s: any) => (
+                                        <option key={s.id} value={s.name}>{s.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Initial Risk Score (0-100)</label>
-                                <input required type="number" min="0" max="100" className="w-full border p-2 rounded" defaultValue={10} onChange={e => setFormData({ ...formData, riskScore: parseInt(e.target.value) })} />
+                                <input required type="number" min="0" max="100" className="w-full border p-2 rounded" value={formData.riskScore} onChange={e => setFormData({ ...formData, riskScore: parseInt(e.target.value) })} />
                             </div>
                             <div className="flex justify-end space-x-2 mt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
@@ -164,6 +259,12 @@ export default function VendorsPage() {
                                         <Building2 className="h-4 w-4 text-gray-800 mr-3" />
                                         <span className="text-sm font-medium text-gray-900">{v.name}</span>
                                     </div>
+                                    {/* Show enrolled schemes if any */}
+                                    {v.operatingSchemes && v.operatingSchemes.length > 0 && (
+                                        <div className="ml-7 mt-1 text-xs text-blue-600">
+                                            {v.operatingSchemes.join(", ")}
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{v.gstin}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
