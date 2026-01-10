@@ -33,7 +33,8 @@ export class AlertController {
             });
 
             // 2. Risk Evaluation
-            const riskLevel = mlResult.riskScore > 80 ? "Critical" : mlResult.riskScore > 50 ? "High" : "Medium";
+            // 2. Risk Evaluation (Manual classification removed as per request)
+            const riskLevel = mlResult.riskScore.toString();
 
             // 3. Create Alert Record
             const newAlert = await Alert.create({
@@ -77,7 +78,11 @@ export class AlertController {
                 details: `Processed payment of ${amount}. Risk Score: ${mlResult.riskScore}`
             });
 
-            return res.json(newAlert);
+            // Return Alert + ML Analysis Flag (isAnomaly) so frontend doesn't need hardcoded thresholds
+            return res.json({
+                ...newAlert.toObject(),
+                isAnomaly: mlResult.isAnomaly
+            });
 
         } catch (error: any) {
             console.error("Create Alert Error:", error);

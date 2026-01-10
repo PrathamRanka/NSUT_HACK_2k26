@@ -128,21 +128,17 @@ export default function AddPaymentForm() {
 
                     {/* RESULTS SECTION */}
                     {result && (
-                        <div className={`mt-8 p-6 rounded-xl border-l-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.riskLevel === 'Critical' ? 'bg-red-50 border-red-500' :
-                            result.riskLevel === 'High' ? 'bg-orange-50 border-orange-500' :
-                                'bg-green-50 border-green-500'
-                            }`}>
+                        <div className={`mt-8 p-6 rounded-xl border-l-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ${result.isAnomaly ? 'bg-red-50 border-red-500' : 'bg-green-50 border-green-500'}`}>
                             <div className="flex items-start gap-4">
-                                {result.riskLevel === 'Critical' ? <XCircle className="w-8 h-8 text-red-600" /> :
-                                    result.riskLevel === 'High' ? <AlertTriangle className="w-8 h-8 text-orange-600" /> :
-                                        <CheckCircle className="w-8 h-8 text-green-600" />}
+                                {result.isAnomaly ? (
+                                    <AlertTriangle className="w-8 h-8 text-red-600" />
+                                ) : (
+                                    <CheckCircle className="w-8 h-8 text-green-600" />
+                                )}
 
                                 <div className="flex-1">
-                                    <h3 className={`text-xl font-bold mb-1 ${result.riskLevel === 'Critical' ? 'text-red-800' :
-                                        result.riskLevel === 'High' ? 'text-orange-800' :
-                                            'text-green-800'
-                                        }`}>
-                                        Risk Assessment: {result.riskLevel}
+                                    <h3 className={`text-xl font-bold mb-1 ${result.isAnomaly ? 'text-red-800' : 'text-green-800'}`}>
+                                        Risk Assessment: {result.isAnomaly ? 'Anomaly Detected' : 'Standard Transaction'}
                                     </h3>
                                     <div className="text-sm font-medium opacity-80 mb-4">
                                         Fraud Score: <span className="text-lg font-bold">{result.riskScore}/100</span>
