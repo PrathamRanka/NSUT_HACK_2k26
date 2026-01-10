@@ -3,7 +3,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { SahayakBot } from "@/components/SahayakBot";
+import ChatbotAssistant from "@/components/ChatbotAssistant";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -32,7 +32,7 @@ export default function DashboardLayout({
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
                     {children}
                 </main>
-                <SahayakBot />
+                <ChatbotAssistant />
             </div>
         </div>
     );

@@ -7,13 +7,18 @@ import networkRoutes from './routes/network.routes';
 import resourceRoutes from './routes/resource.routes';
 import authRoutes from './routes/auth.routes';
 import analyticsRoutes from './routes/analytics.routes';
-import { Scheme, Vendor, AuditLog } from './models'; // Keep legacy simple routes for now
+import { Scheme, Vendor, AuditLog } from './models';
 
 const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allow all origins for development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 

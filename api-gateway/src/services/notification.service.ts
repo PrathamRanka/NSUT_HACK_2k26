@@ -1,8 +1,11 @@
-import nodemailer from 'nodemailer';
-
 // ===== FEATURE 12: EMAIL NOTIFICATIONS =====
-export class NotificationService {
-    private static transporter = nodemailer.createTransporter({
+// Optional: Install nodemailer with: npm install nodemailer @types/nodemailer
+
+let transporter: any = null;
+
+try {
+    const nodemailer = require('nodemailer');
+    transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587'),
         secure: false,
@@ -11,8 +14,18 @@ export class NotificationService {
             pass: process.env.SMTP_PASS || 'your-app-password'
         }
     });
+} catch (error) {
+    console.warn('⚠️ Nodemailer not installed. Email notifications disabled.');
+    console.warn('To enable: npm install nodemailer @types/nodemailer');
+}
 
+export class NotificationService {
     static async sendCriticalAlertEmail(alert: any) {
+        if (!transporter) {
+            console.log('📧 Email notification skipped (nodemailer not installed)');
+            return;
+        }
+
         try {
             // Only send for critical alerts (risk score > 90)
             if (alert.riskScore < 90) return;
@@ -80,7 +93,7 @@ export class NotificationService {
                 `
             };
 
-            await this.transporter.sendMail(mailOptions);
+            await transporter.sendMail(mailOptions);
             console.log(`✅ Critical alert email sent for ${alert.id}`);
         } catch (error) {
             console.error('Email notification error:', error);
@@ -89,6 +102,11 @@ export class NotificationService {
     }
 
     static async sendWeeklySummary(stats: any) {
+        if (!transporter) {
+            console.log('📧 Weekly summary email skipped (nodemailer not installed)');
+            return;
+        }
+
         try {
             const mailOptions = {
                 from: process.env.SMTP_USER || 'sahayak@pfms.gov.in',
@@ -116,7 +134,7 @@ export class NotificationService {
                 `
             };
 
-            await this.transporter.sendMail(mailOptions);
+            await transporter.sendMail(mailOptions);
             console.log('✅ Weekly summary email sent');
         } catch (error) {
             console.error('Weekly summary email error:', error);

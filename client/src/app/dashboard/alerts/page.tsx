@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Filter, ChevronRight, AlertTriangle } from "lucide-react";
+import { Filter, ChevronRight, AlertTriangle, Download, FileJson, FileSpreadsheet } from "lucide-react";
+import { exportToCSV, exportToJSON } from "@/lib/export";
+import { API_ENDPOINTS } from "@/lib/config";
 
 interface AlertData {
     id: string;
@@ -18,10 +20,11 @@ export default function AlertsPage() {
     const [filterStatus, setFilterStatus] = useState("All");
     const [alerts, setAlerts] = useState<AlertData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     const fetchAlerts = async (initialLoad = false) => {
         try {
-            const res = await fetch('http://localhost:8000/alerts');
+            const res = await fetch(API_ENDPOINTS.ALERTS);
             if (res.ok) {
                 const data = await res.json();
                 setAlerts(data);
@@ -42,7 +45,7 @@ export default function AlertsPage() {
         setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
 
         try {
-            const res = await fetch(`http://localhost:8000/alerts/${id}/status`, {
+            const res = await fetch(API_ENDPOINTS.ALERT_STATUS(id), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -52,6 +55,16 @@ export default function AlertsPage() {
             console.error("Update failed", err);
             fetchAlerts(); // Revert on error
         }
+    };
+
+    const handleExportCSV = () => {
+        exportToCSV(filteredAlerts, 'sahayak_alerts');
+        setShowExportMenu(false);
+    };
+
+    const handleExportJSON = () => {
+        exportToJSON(filteredAlerts, 'sahayak_alerts');
+        setShowExportMenu(false);
     };
 
     useEffect(() => {
@@ -70,19 +83,43 @@ export default function AlertsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Live Alerts</h1>
                     <p className="text-sm text-gray-500">Monitor and investigate transaction anomalies.</p>
                 </div>
                 <div className="flex space-x-3">
-                    <button className="flex items-center px-4 py-2 border border-gray-300 rounded-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
+                    <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm">
                         <Filter className="h-4 w-4 mr-2" />
                         Filter
                     </button>
-                    <button className="flex items-center px-4 py-2 border border-transparent rounded-sm bg-blue-900 text-sm font-medium text-white hover:bg-blue-800 shadow-sm">
-                        Export Report
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            className="flex items-center px-4 py-2 border border-transparent rounded-lg bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 shadow-sm"
+                        >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
+                                >
+                                    <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                                    Export as CSV
+                                </button>
+                                <button
+                                    onClick={handleExportJSON}
+                                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg"
+                                >
+                                    <FileJson className="h-4 w-4 mr-2 text-blue-600" />
+                                    Export as JSON
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
