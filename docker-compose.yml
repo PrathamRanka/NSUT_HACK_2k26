@@ -51,7 +51,9 @@ services:
       - pfms-net
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
     ports:
       - "4000:4000"
@@ -69,7 +71,9 @@ services:
 
   # --- FRONTEND ---
   client:
-    build: ./client
+    build:
+      context: .
+      dockerfile: client/Dockerfile
     container_name: pfms-client
     ports:
       - "3000:3000"

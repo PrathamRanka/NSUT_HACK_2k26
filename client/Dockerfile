@@ -2,19 +2,29 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json ./
+# Copy Common Library
+COPY common ./common
+
+# Install Common Deps & Build
+WORKDIR /app/common
+RUN npm install
+RUN npm run build
+
+# Setup Client
+WORKDIR /app/client
+COPY client/package*.json ./
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy source
+COPY client .
+
+# Install common
+RUN npm install ../common
 
 # Disable Next.js Telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Expose port (dev mode for hot reload if volume mounted, or production build)
-# For simplicity in this "all-in-one" docker setup, we will use dev mode or build.
-# Let's use production build for stability.
+# Build
 RUN npm run build
 
 EXPOSE 3000
