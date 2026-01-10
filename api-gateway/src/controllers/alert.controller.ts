@@ -131,4 +131,34 @@ export class AlertController {
             return res.status(500).json({ error: "Failed to fetch alerts" });
         }
     }
+
+    static async updateAlertStatus(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const { status, notes } = req.body;
+
+            const alert = await Alert.findOneAndUpdate(
+                { id },
+                { status, $push: { hierarchy: { role: 'Officer', name: 'User', status, time: new Date().toISOString() } } },
+                { new: true }
+            );
+
+            if (!alert) {
+                return res.status(404).json({ error: "Alert not found" });
+            }
+
+            // Log the action
+            await AuditLog.create({
+                id: `LOG-${Date.now()}`,
+                action: "STATUS_UPDATE",
+                actor: "User",
+                target: id,
+                details: `Updated status to ${status}. Notes: ${notes || 'None'}`
+            });
+
+            return res.json(alert);
+        } catch (error) {
+            return res.status(500).json({ error: "Failed to update alert status" });
+        }
+    }
 }

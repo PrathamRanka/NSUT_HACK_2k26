@@ -46,7 +46,52 @@ const AuditLogSchema = new mongoose.Schema({
     details: String
 });
 
-export const Scheme = mongoose.model('Scheme', SchemeSchema);
-export const Vendor = mongoose.model('Vendor', VendorSchema);
-export const Alert = mongoose.model('Alert', AlertSchema);
-export const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
+export interface IScheme extends mongoose.Document {
+    id: string;
+    name: string;
+    ministry: string;
+    budgetAllocated: number;
+    status: string;
+    description: string;
+}
+
+export interface IVendor extends mongoose.Document {
+    id: string;
+    name: string;
+    gstin: string;
+    riskScore: number;
+    totalVolume: number;
+    flaggedTransactions: number;
+    accountStatus: string;
+}
+
+export interface IAlert extends mongoose.Document {
+    id: string;
+    scheme: string;
+    riskScore: number;
+    amount: number;
+    status: string;
+    riskLevel: string;
+    date: string;
+    beneficiary: string;
+    account: string;
+    district: string;
+    timestamp: string;
+    state: string;
+    mlReasons: string[];
+    hierarchy: { role: string, name: string, status: string, time: string }[];
+}
+
+export interface IAuditLog extends mongoose.Document {
+    id: string;
+    action: string;
+    actor: string;
+    target: string;
+    timestamp: Date;
+    details: string;
+}
+
+export const Scheme = mongoose.model<IScheme>('Scheme', SchemeSchema);
+export const Vendor = mongoose.model<IVendor>('Vendor', VendorSchema);
+export const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
+export const AuditLog = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);

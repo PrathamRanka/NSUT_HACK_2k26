@@ -37,6 +37,23 @@ export default function AlertsPage() {
         }
     };
 
+    const handleAction = async (id: string, newStatus: string) => {
+        // Optimistic Update
+        setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+
+        try {
+            const res = await fetch(`http://localhost:8000/alerts/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) throw new Error("Failed to update");
+        } catch (err) {
+            console.error("Update failed", err);
+            fetchAlerts(); // Revert on error
+        }
+    };
+
     useEffect(() => {
         fetchAlerts(true);
         const interval = setInterval(() => fetchAlerts(false), 3000);
@@ -125,8 +142,24 @@ export default function AlertsPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {alert.status}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <Link href={`/dashboard/alerts/${alert.id}`} className="text-blue-600 hover:text-blue-900 flex items-center justify-end">
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    {alert.status === 'New' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleAction(alert.id, 'Verified')}
+                                                className="text-green-600 hover:text-green-900 border border-green-200 px-2 py-1 rounded hover:bg-green-50"
+                                            >
+                                                Verify
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction(alert.id, 'False Positive')}
+                                                className="text-red-600 hover:text-red-900 border border-red-200 px-2 py-1 rounded hover:bg-red-50"
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </>
+                                    )}
+                                    <Link href={`/dashboard/alerts/${alert.id}`} className="text-blue-600 hover:text-blue-900 inline-flex items-center ml-2">
                                         View
                                         <ChevronRight className="h-4 w-4 ml-1" />
                                     </Link>

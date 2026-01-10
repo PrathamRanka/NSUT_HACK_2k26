@@ -15,11 +15,9 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoggingIn(true);
     // Simulate network delay
-    setTimeout(() => {
-      login(selectedRole);
-      router.push("/dashboard");
-      setIsLoggingIn(false);
-    }, 800);
+    login(selectedRole);
+    router.push("/dashboard");
+    setIsLoggingIn(false);
   };
 
   return (
