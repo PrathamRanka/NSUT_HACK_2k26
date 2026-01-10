@@ -12,7 +12,8 @@ RUN npm run build
 
 # Setup API Gateway
 WORKDIR /app/api-gateway
-COPY api-gateway/package*.json ./
+COPY api-gateway/package.json ./
+# Skip copying lockfile to avoid local path resolution conflicts
 RUN npm install
 
 # Copy source code

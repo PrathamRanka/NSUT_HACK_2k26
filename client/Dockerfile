@@ -12,7 +12,8 @@ RUN npm run build
 
 # Setup Client
 WORKDIR /app/client
-COPY client/package*.json ./
+COPY client/package.json ./
+# Skip copying lockfile to avoid local path resolution conflicts
 RUN npm install
 
 # Copy source
