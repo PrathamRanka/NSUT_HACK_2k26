@@ -24,7 +24,9 @@ COPY api-gateway .
 # Better: Install common as a file dependency if package.json supported it.
 # But since error is TS2307, let's just make sure it's available.
 # Actually, let's try to install it.
-RUN npm install ../common
+# Check common package name and install
+# Ensure we map it correctly if name is @fds/common
+RUN npm install ./common
 
 # Build TypeScript
 RUN npm run build

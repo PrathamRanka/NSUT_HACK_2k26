@@ -18,8 +18,8 @@ RUN npm install
 # Copy source
 COPY client .
 
-# Install common
-RUN npm install ../common
+# Check common package name and install
+RUN npm install ./common
 
 # Disable Next.js Telemetry
 ENV NEXT_TELEMETRY_DISABLED 1

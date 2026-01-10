@@ -18,7 +18,8 @@
     "kafkajs": "^2.2.4",
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "@fds/common": "file:../common"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
