@@ -18,8 +18,7 @@ RUN npm install
 # Copy source
 COPY client .
 
-# Check common package name and install
-RUN npm install ./common
+# Common package is installed via package.json file dependency
 
 # Disable Next.js Telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
