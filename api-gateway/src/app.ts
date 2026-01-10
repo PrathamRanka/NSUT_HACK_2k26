@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import alertRoutes from './routes/alert.routes';
+import networkRoutes from './routes/network.routes';
 import { Scheme, Vendor, AuditLog } from './models'; // Keep legacy simple routes for now
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Routes
 app.use('/alerts', alertRoutes);
+app.use('/network', networkRoutes);
 
 // --- LEGACY/SIMPLE ROUTES (Kept for compatibility) ---
 // Ideally these would be refactored into controllers too

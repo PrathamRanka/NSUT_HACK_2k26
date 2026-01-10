@@ -48,8 +48,8 @@ export class AlertController {
                 scheme: scheme || "Unknown",
                 vendor: vendor || "Unknown",
                 beneficiary: beneficiary || "Unknown",
-                account: "XX-" + Math.floor(1000 + Math.random() * 9000), // Simulation
-                district: "Simulated District", // Simulation
+                account: "XX-" + Math.floor(1000 + Math.random() * 9000),
+                district: ["Lucknow", "Patna", "Mumbai", "New Delhi"][Math.floor(Math.random() * 4)],
                 hierarchy: []
             });
 
