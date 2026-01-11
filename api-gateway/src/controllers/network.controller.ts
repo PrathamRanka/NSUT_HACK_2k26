@@ -164,4 +164,68 @@ export class NetworkController {
             res.status(500).json({ error: error.message || 'Failed to fetch network' });
         }
     }
+
+    static async getGlobalNetwork(req: Request, res: Response) {
+        try {
+            // Fetch all Schemes and Vendors
+            // In production, optimize this with aggregation or limit
+            const schemes = await import('../models').then(m => m.Scheme.find().lean());
+            const vendors = await import('../models').then(m => m.Vendor.find().limit(50).lean()); // Limit for visualization sanity
+            const alerts = await Alert.find().sort({ timestamp: -1 }).limit(200).lean();
+
+            const nodes: any[] = [];
+            const links: any[] = [];
+            const addedNodeIds = new Set<string>();
+
+            // Helper to add node if not exists
+            const addNode = (id: string, label: string, type: 'Ministry' | 'Scheme' | 'Vendor', val: number = 10) => {
+                if (!addedNodeIds.has(id)) {
+                    nodes.push({ id, label, type, val });
+                    addedNodeIds.add(id);
+                }
+            };
+
+            // 1. Create Ministry Nodes (Roots)
+            const ministries = new Set(schemes.map(s => s.ministry));
+            ministries.forEach(m => addNode(m, m, 'Ministry', 30));
+
+            // 2. Create Scheme Nodes and link to Ministry
+            schemes.forEach(s => {
+                const schemeId = s.id; // SCH-001
+                addNode(schemeId, s.name, 'Scheme', 20);
+                links.push({ source: s.ministry, target: schemeId, value: 2 });
+            });
+
+            // 3. Create Vendor Nodes and link to Schemes based on Alerts (Transactions)
+            // We use alerts as a proxy for transactions in this demo
+            alerts.forEach(a => {
+                const schemeId = a.scheme;
+                const vendorName = a.vendor;
+
+                // Only link if scheme exists in our map (sanity check)
+                if (addedNodeIds.has(schemeId)) {
+                    // Find actual vendor object to get ID, or use name as ID fallback
+                    const vendorObj = vendors.find(v => v.name === vendorName);
+                    const vendorId = vendorObj ? vendorObj.id : vendorName;
+
+                    addNode(vendorId, vendorName, 'Vendor', 10);
+
+                    // Link Scheme -> Vendor
+                    // Check if link already exists to aggregate weight? 
+                    // For force-graph, multiple links are okay, or we can pre-aggregate
+                    links.push({
+                        source: schemeId,
+                        target: vendorId,
+                        value: a.amount / 10000000 // Weight by amount (scaled)
+                    });
+                }
+            });
+
+            res.json({ nodes, links });
+
+        } catch (error: any) {
+            console.error('Global network fetch error:', error);
+            res.status(500).json({ error: 'Failed to fetch global network' });
+        }
+    }
 }
