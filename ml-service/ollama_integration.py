@@ -76,22 +76,21 @@ Transaction Details:
 - Vendor: {vendor}
 - Agency: {agency}
 - Amount: ₹{amount:,.2f}
-- ML Fraud Score: {fraud_score} (0.0-1.0 scale, higher = more anomalous)
-- Risk Score: {risk_score}/99 (rule-based assessment)
+
 - Flagged as Anomaly: {prediction['is_anomaly']}
 {vendor_history}
 Risk Indicators Detected:
 {chr(10).join(f"• {r}" for r in reasons) if reasons else "• No specific risk indicators"}
 
 Generate a professional 3-4 sentence profile explaining:
-1. Why this vendor/agency combination was flagged (reference both ML and rule-based scores)
+1. Why this vendor/agency combination was flagged
 2. The key risk factors identified, INCLUDING vendor historical patterns from the database
 3. Recommended next steps for investigators
 
 Be concise, factual, and focus only on the provided risk indicators and vendor history. Explain the difference between the ML fraud score (subtle patterns) and risk score (explicit rules). Reference the vendor's historical data when relevant. Do not speculate beyond the given data."""
 
             response = ollama.generate(
-                model='llama3:8b',
+                model='tinyllama:1.1b',
                 prompt=prompt,
                 options={
                     'temperature': 0.3,
@@ -132,7 +131,7 @@ If the user asks about specific vendors or schemes, explain that you can analyze
 Do not hallucinate specific data unless provided in the context."""
 
             response = ollama.chat(
-                model='llama3:8b',
+                model='tinyllama:1.1b',
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': message},

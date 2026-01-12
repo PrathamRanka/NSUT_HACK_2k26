@@ -6,14 +6,14 @@ import dynamic from 'next/dynamic';
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useMapUpdate } from "@/contexts/MapUpdateContext";
-import 'leaflet/dist/leaflet.css';
 
 // Dynamically import Leaflet to avoid SSR issues
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+// Dynamically import Leaflet to avoid SSR issues
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false }) as any;
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false }) as any;
+const CircleMarker = dynamic(() => import('react-leaflet').then(mod => mod.CircleMarker), { ssr: false }) as any;
+const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false }) as any;
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false }) as any;
 
 // Heatmap layer component
 const HeatmapLayer = dynamic(() => import('react-leaflet').then(async (mod) => {
@@ -110,10 +110,20 @@ export default function MapPage() {
     const centerLat = 20.5937;
     const centerLng = 78.9629;
 
+    const [L, setL] = useState<any>(null);
+
+    useEffect(() => {
+        // Load Leaflet on client side only
+        if (typeof window !== 'undefined') {
+            import('leaflet').then((mod) => {
+                setL(mod.default || mod);
+            });
+        }
+    }, []);
+
     // Create custom vendor icon
     const createVendorIcon = (riskScore: number) => {
-        if (typeof window === 'undefined') return undefined;
-        const L = require('leaflet');
+        if (!L) return undefined;
 
         const color = riskScore > 70 ? '#ef4444' : riskScore > 40 ? '#f97316' : '#22c55e';
 
