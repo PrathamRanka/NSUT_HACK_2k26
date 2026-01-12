@@ -1,0 +1,7 @@
+amount,agency,vendor,transaction_time,payment_behavior,timing_accuracy_days,latitude,longitude
+50000,Ministry of Culture,Agro Tech Supplies,10:30:00,REGULAR,30,28.6139,77.2090
+9500000,Ministry of Transport,Rural Infra Builders,23:45:00,QUARTERLY,15,26.8467,80.9462
+12000,Ministry of Education,Book World,14:15:00,REGULAR,2,28.7041,77.1025
+6000000,Ministry of Health,MediCorp Supplies,09:00:00,QUARTERLY,90,19.0760,72.8777
+8888,Ministry of Education,Stationery Hub,16:20:00,REGULAR,30,,
+450000,Ministry of Defence,Secure Systems,03:30:00,MILESTONE,10,12.9716,77.5946

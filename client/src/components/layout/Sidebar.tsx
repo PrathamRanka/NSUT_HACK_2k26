@@ -33,6 +33,7 @@ export function Sidebar() {
         { name: t('Vendor Intelligence'), href: '/dashboard/vendors', icon: Users },
         { name: t('Alerts & Anomalies'), href: '/dashboard/alerts', icon: AlertTriangle },
         { name: t('Geospatial Map'), href: '/dashboard/map', icon: Map },
+        { name: t('Batch Analysis'), href: '/batch', icon: Activity },
         { name: t('New Transaction'), href: '/dashboard/add-payment', icon: Landmark },
         // { name: t('Audit Log'), href: '/dashboard/audit', icon: ShieldAlert },
     ];
