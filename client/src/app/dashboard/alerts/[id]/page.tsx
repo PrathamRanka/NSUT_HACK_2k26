@@ -244,9 +244,9 @@ export default function AlertDetailPage() {
                                 Risk Breakdown
                             </h2>
                             <div style={{ width: "700px", margin: "40px auto" }}>
-      <BarChart style={{ width: "100px" }} />
+                                <BarChart data={riskBreakdown} style={{ width: "100%" }} />
 
-    </div>
+                            </div>
                         </div>
 
                         {/* Vendor Stats Chart */}
@@ -297,6 +297,10 @@ export default function AlertDetailPage() {
                             <div>
                                 <p className="text-sm text-gray-500">Vendor</p>
                                 <p className="font-semibold text-gray-900">{alert.vendor || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500">Vendor ID</p>
+                                <p className="font-semibold text-gray-900">001</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Beneficiary</p>

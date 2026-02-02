@@ -11,18 +11,26 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-const BarChart: React.FC = () => {
+interface BarChartProps {
+  data?: Record<string, number>;
+  style?: React.CSSProperties;
+}
+
+const BarChart: React.FC<BarChartProps> = ({ data: inputData }) => {
+  // Use inputData if provided, otherwise fallback to empty or default
+  const labels = inputData ? Object.keys(inputData) : ["Base Score", "MI Score", "Vendor History", "Amount Anamoly", "Frequency Anomaly"];
+  const values = inputData ? Object.values(inputData) : [0, 0, 0, 0, 0];
+
   const data = {
-    labels: ["Base Score","MI Score","Vendor History", "Amount Anamoly","Frequency Anomaly"], // 5 data points
+    labels: labels,
     datasets: [
       {
-        label: "Transactions",
-        data: [120, 190, 320, 250, 220], // 1 dataset
+        label: "Risk Contribution",
+        data: values,
         backgroundColor: "rgba(0, 102, 255, 0.8)", // Blue color
-         barThickness: 30,       
-    maxBarThickness: 60,   
-    borderRadius: 6,
-   
+        barThickness: 30,
+        maxBarThickness: 60,
+        borderRadius: 6,
       }
     ]
   };
@@ -36,7 +44,8 @@ const BarChart: React.FC = () => {
     },
     scales: {
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        max: 100 // assuming risk scores are out of 100
       }
     }
   };
